@@ -197,7 +197,7 @@ app.get('/health', async (req, res) => {
   res.json({ ok: true, app: APP_NAME, db });
 });
 
-app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '7.1.0-balance-panel-fixed', db: Boolean(pool), time: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '7.2.0-compact-balance-pill', db: Boolean(pool), time: new Date().toISOString() }));
 app.get('/api/config', (req, res) => res.json({ appName: APP_NAME, botUsername: BOT_USERNAME, channelUrl: CHANNEL_URL, supportUrl: SUPPORT_URL, baseUrl: APP_BASE_URL }));
 
 app.post('/api/session', auth, async (req, res) => res.json({ ok: true, user: publicUser(req.user) }));

@@ -29,7 +29,7 @@ NFT_SYNC_ENABLED=true
 
 ## Проверка
 
-`/api/version` должен вернуть `7.1.0-balance-panel-fixed`.
+`/api/version` должен вернуть `7.2.0-compact-balance-pill`.
 
 ## Админка
 
