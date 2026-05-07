@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080B18" />
+  <title>StarVault Mini App Prototype</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <main class="app-shell" id="appShell">
+    <aside class="rail glass">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M32 4l7.6 17.1L58 23.1 44.1 35.7 48 54 32 44.5 16 54l3.9-18.3L6 23.1l18.4-2L32 4z"/></svg>
+        </div>
+        <div>
+          <strong>StarVault</strong>
+          <span>demo arcade</span>
+        </div>
+      </div>
+
+      <nav class="desktop-tabs" aria-label="Навигация">
+        <button class="tab active" data-tab="profile">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 12.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Zm0 2.1c-4.1 0-7.4 2.2-7.4 5v.9h14.8v-.9c0-2.8-3.3-5-7.4-5Z"/></svg></span>
+          <span>Профиль</span>
+        </button>
+        <button class="tab" data-tab="games">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M5.7 7.2h12.6a3.5 3.5 0 0 1 3.4 2.8l1 5.5a3.1 3.1 0 0 1-5.4 2.6l-1.8-2H8.5l-1.8 2a3.1 3.1 0 0 1-5.4-2.6l1-5.5a3.5 3.5 0 0 1 3.4-2.8Zm3.1 2.2v2H6.9v1.8h1.9v2h1.8v-2h1.9v-1.8h-1.9v-2H8.8Zm8.2 2.2a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Zm2.2 3.6a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"/></svg></span>
+          <span>Игры</span>
+        </button>
+        <button class="tab" data-tab="cases">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M8 5.2A3.2 3.2 0 0 1 11.2 2h1.6A3.2 3.2 0 0 1 16 5.2V6h3.4A2.6 2.6 0 0 1 22 8.6v9.8a2.6 2.6 0 0 1-2.6 2.6H4.6A2.6 2.6 0 0 1 2 18.4V8.6A2.6 2.6 0 0 1 4.6 6H8v-.8Zm2.2.8h3.6v-.8a1 1 0 0 0-1-1h-1.6a1 1 0 0 0-1 1V6Zm-6 5.2v2.1h15.6v-2.1H4.2Z"/></svg></span>
+          <span>Кейсы</span>
+        </button>
+        <button class="tab" data-tab="bonuses">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M20.4 7.2h-2.1c.2-.5.3-1 .3-1.5A3.7 3.7 0 0 0 12 3.4 3.7 3.7 0 0 0 5.4 5.7c0 .5.1 1 .3 1.5H3.6A1.6 1.6 0 0 0 2 8.8V12h20V8.8a1.6 1.6 0 0 0-1.6-1.6ZM9.1 7.2A1.5 1.5 0 1 1 10.6 5.7v1.5H9.1Zm4.3 0V5.7a1.5 1.5 0 1 1 1.5 1.5h-1.5ZM3.6 13.6v5.8A2.6 2.6 0 0 0 6.2 22h4.6v-8.4H3.6Zm9.6 0V22h4.6a2.6 2.6 0 0 0 2.6-2.6v-5.8h-7.2Z"/></svg></span>
+          <span>Бонусы</span>
+        </button>
+        <button class="tab" data-tab="tasks">
+          <span class="icon"><svg viewBox="0 0 24 24"><path d="M9.1 16.2 5.8 13l-1.6 1.6 4.9 4.8L20 8.5 18.4 7 9.1 16.2ZM4 5.2h11V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5h-2.2v5H4V5.2Z"/></svg></span>
+          <span>Задания</span>
+        </button>
+      </nav>
+
+      <div class="rail-footer">
+        <span class="status-dot"></span>
+        <span id="deviceLabel">Определение устройства</span>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar glass">
+        <div>
+          <p class="eyebrow">Telegram Mini App Prototype</p>
+          <h1 id="pageTitle">Профиль</h1>
+        </div>
+        <div class="balance-card">
+          <span>Баланс</span>
+          <strong><span id="balanceValue">1 250</span> SV</strong>
+        </div>
+      </header>
+
+      <section class="page active" id="profile">
+        <div class="hero glass">
+          <div class="hero-copy">
+            <p class="eyebrow">Аккаунт</p>
+            <h2 id="userName">Игрок Telegram</h2>
+            <p>Демо-аккаунт синхронизируется с Telegram WebApp API. Реальные платежи, подарки и NFT должны проходить через лицензированный серверный контур.</p>
+            <div class="actions">
+              <button class="primary" id="depositBtn">Пополнить демо-баланс</button>
+              <button class="ghost" id="claimGiftBtn">Получить демо-подарок</button>
+            </div>
+          </div>
+          <div class="profile-orb" aria-hidden="true">
+            <svg viewBox="0 0 220 220">
+              <defs><linearGradient id="orb" x1="0" x2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs>
+              <circle cx="110" cy="110" r="82" fill="url(#orb)" opacity=".22"/>
+              <path d="M110 38l19 43 46 5-35 31 10 45-40-24-40 24 10-45-35-31 46-5 19-43Z" fill="url(#orb)"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <article class="card glass">
+            <div class="card-head">
+              <h3>TON Wallet</h3>
+              <span class="badge safe">connect only</span>
+            </div>
+            <p>Кнопка TON Connect подключается через официальный UI SDK. Транзакции в прототипе отключены.</p>
+            <div id="ton-connect"></div>
+            <small id="walletState">Кошелёк не подключён</small>
+          </article>
+          <article class="card glass">
+            <div class="card-head">
+              <h3>Подарки и NFT</h3>
+              <span class="badge">mock sync</span>
+            </div>
+            <p>Лента ниже — визуальная заглушка. Реальную сверку NFT делают через TON API/индексатор на сервере.</p>
+            <div class="gift-row" id="giftRow"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="games">
+        <div class="grid two">
+          <article class="game-card glass">
+            <div class="card-head">
+              <h3>Spin Wheel</h3>
+              <span class="badge">demo rng</span>
+            </div>
+            <div class="wheel-wrap">
+              <div class="pointer"></div>
+              <div class="wheel" id="spinWheel">
+                <span>x0</span><span>x1.2</span><span>x1.5</span><span>x2</span><span>x3</span><span>x5</span><span>x10</span><span>x20</span>
+              </div>
+            </div>
+            <label class="field">Ставка SV<input id="spinBet" type="number" min="10" max="500" value="50" /></label>
+            <button class="primary wide" id="spinBtn">Крутить</button>
+            <p class="result" id="spinResult">Выбери ставку и крути демо-колесо.</p>
+          </article>
+
+          <article class="game-card glass">
+            <div class="card-head">
+              <h3>Color Roulette</h3>
+              <span class="badge">weighted</span>
+            </div>
+            <div class="color-board" id="colorBoard"></div>
+            <label class="field">Ставка SV<input id="colorBet" type="number" min="10" max="500" value="50" /></label>
+            <button class="primary wide" id="colorBtn">Запустить цвет</button>
+            <p class="result" id="colorResult">Чем выше множитель, тем ниже шанс выпадения.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="cases">
+        <div class="section-title">
+          <div><p class="eyebrow">Коллекции</p><h2>Кейсы с демо-предметами</h2></div>
+          <button class="ghost" id="openCaseBtn">Открыть демо-кейс</button>
+        </div>
+        <div class="case-grid" id="caseGrid"></div>
+      </section>
+
+      <section class="page" id="bonuses">
+        <div class="bonus-stack">
+          <article class="bonus glass">
+            <div><h3>Daily Bonus</h3><p>Раз в день начисляет демо-SV, без реальной ценности.</p></div>
+            <button class="primary" data-bonus="daily">Забрать</button>
+          </article>
+          <article class="bonus glass">
+            <div><h3>Wallet Connect Bonus</h3><p>Награда за подключение TON-кошелька в демо-режиме.</p></div>
+            <button class="primary" data-bonus="wallet">Проверить</button>
+          </article>
+          <article class="bonus glass">
+            <div><h3>Fair Play Badge</h3><p>Плашка для проектов с лицензией, KYC/AML и аудитом RNG.</p></div>
+            <button class="ghost" data-bonus="fair">Подробнее</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="tasks">
+        <div class="tasks-list" id="tasksList"></div>
+      </section>
+    </section>
+
+    <nav class="mobile-tabs glass" aria-label="Мобильная навигация"></nav>
+  </main>
+
+  <dialog class="modal glass" id="depositModal">
+    <button class="close" id="closeDeposit" aria-label="Закрыть">×</button>
+    <p class="eyebrow">Demo cashier</p>
+    <h2>Пополнение</h2>
+    <p>В прототипе кнопка начисляет тестовый баланс. Реальные Stars-покупки должны создаваться ботом через invoice `XTR`, а TON-платежи — только после юридической проверки, лицензии и серверной валидации.</p>
+    <div class="amounts" id="amounts"></div>
+    <button class="primary wide" id="demoTopup">Начислить демо-SV</button>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
