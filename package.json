@@ -1,9 +1,9 @@
 {
-  "name": "starlucky-v6",
-  "version": "6.0.0",
+  "name": "starlucky-serious-db",
+  "version": "7.0.0",
   "type": "module",
   "private": true,
-  "scripts": { "start": "node server.mjs" },
-  "dependencies": { "express": "^4.19.2" },
-  "engines": { "node": ">=20" }
+  "scripts": {"start":"node server.mjs"},
+  "dependencies": {"express":"^4.19.2","pg":"^8.12.0"},
+  "engines": {"node": ">=20"}
 }

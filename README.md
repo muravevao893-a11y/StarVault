@@ -1,44 +1,45 @@
-# StarLucky Mini App
+# StarLucky v7 DB Serious
 
-Railway-ready Telegram Mini App in dark/gold style.
+Сборка без клиентского стартового баланса и без встроенных лёгких заданий.
+Баланс, задания, подарки и инвентарь хранятся в PostgreSQL.
 
-## Files
+## Railway env
 
-- `server.mjs` — Express server, static frontend, `/start` webhook.
-- `public/index.html` — Telegram Mini App markup.
-- `public/styles.css` — full dark/gold mobile UI.
-- `public/app.js` — working internal balance, games, cases, bonuses, tasks, profile.
-- `railway.json` — Railway start and healthcheck.
+Обязательные:
 
-## Deploy
-
-```powershell
-git add -A
-git commit -m "Deploy StarLucky full fixed"
-git push
+```env
+DATABASE_URL=postgresql://...
+TELEGRAM_BOT_TOKEN=...
+WEBHOOK_SECRET=...
+ADMIN_TOKEN=...
+APP_BASE_URL=https://your-app.up.railway.app
+PUBLIC_APP_NAME=StarLucky
+PUBLIC_TG_BOT_USERNAME=YourBot
+PUBLIC_CHANNEL_URL=https://t.me/your_channel
+PUBLIC_SUPPORT_URL=https://t.me/your_support
 ```
 
-## Check
+Опционально для TON NFT sync:
 
-Open:
-
-```text
-https://YOUR_DOMAIN.up.railway.app/api/version
+```env
+TON_API_KEY=...
+TON_API_BASE=https://tonapi.io
+NFT_SYNC_ENABLED=true
 ```
 
-Expected version: `4.0.0-full-fixed`.
+## Проверка
 
-## Telegram webhook
+`/api/version` должен вернуть `7.0.0-db-serious`.
 
-```powershell
-$BOT_TOKEN="YOUR_BOT_TOKEN"
-$WEBHOOK_SECRET="YOUR_WEBHOOK_SECRET"
-$APP_URL="https://YOUR_DOMAIN.up.railway.app"
+## Админка
 
-Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" -Body @{
-  url="$APP_URL/api/telegram/webhook"
-  secret_token=$WEBHOOK_SECRET
-}
-```
+Открой `/admin.html`, вставь `ADMIN_TOKEN` и создавай:
+- задания: название, описание, reward, image_url, button_url;
+- подарки: название, цена, stock, image_url;
+- вручную одобряй task claims;
+- вручную начисляй баланс пользователю по Telegram ID.
 
-This project uses an internal entertainment balance only. Real-money gambling, payouts, or casino flows require licensed backend infrastructure and are intentionally not included.
+## Важно
+
+В этой версии игры не начисляют баланс. Реальные звёзды/подарки нельзя выдавать через клиентский RNG или локальный баланс.
+Начисления идут только через серверный ledger и уникальные external_id, чтобы не было дублей.
