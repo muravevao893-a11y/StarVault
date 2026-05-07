@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050506" />
+  <title>StarLucky</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+</head>
+<body>
+  <main class="app-shell" id="app">
+    <header class="topbar">
+      <div>
+        <h1 class="brand">Star<span>Lucky</span></h1>
+        <button class="pill ghost" id="refButton" type="button">
+          <span data-icon="link"></span>
+          <span>Реф. ссылка</span>
+        </button>
+      </div>
+      <div class="balance-wrap">
+        <button class="balance-chip" type="button" data-open-topup>
+          <span data-icon="star-fill"></span>
+          <strong id="balanceValue">0</strong>
+        </button>
+        <button class="round-plus" type="button" data-open-topup aria-label="Пополнить">
+          <span data-icon="plus"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="live-strip">
+      <div class="section-title"><i></i> Лайв дропы</div>
+      <div class="drop-row" id="dropRow"></div>
+    </section>
+
+    <nav class="mode-tabs" aria-label="game modes">
+      <button class="active" type="button" data-mode="arcade"><span data-icon="sword"></span> ARCADE</button>
+      <button type="button" data-mode="pvp"><span data-icon="trend"></span> PVP</button>
+      <button type="button" data-mode="pve"><span data-icon="bolt"></span> PVE</button>
+    </nav>
+
+    <section class="view active" id="view-games" data-view="games">
+      <article class="hero-card spin-card">
+        <button class="info-dot" type="button" data-toast="Star Spin: внутренняя развлекательная механика без вывода."><span data-icon="info"></span></button>
+        <div class="hero-copy">
+          <p>STAR</p>
+          <h2>SPIN</h2>
+        </div>
+        <div class="wheel-art" aria-hidden="true">
+          <div class="wheel-ring">
+            <span>x5</span><span>x8</span><span>x10</span><span>x3</span><span>x2.5</span><span>x2</span><span>x0.5</span>
+            <b><span data-icon="star-fill"></span></b>
+          </div>
+        </div>
+        <button class="play-btn" type="button" data-open-game="spin">Играть <span data-icon="chevron"></span></button>
+        <div class="multiplier-badge">x2.5</div>
+      </article>
+
+      <article class="lucky-card">
+        <div>
+          <h3>САМЫЙ ВЕЗУЧИЙ</h3>
+          <div class="winner">
+            <div class="avatar tiny" id="leaderAvatar">A</div>
+            <div><strong id="leaderName">Алексей</strong><span id="leaderWhen">Сегодня</span></div>
+          </div>
+        </div>
+        <strong class="win-pill" id="leaderPrize">+1500 ⭐</strong>
+      </article>
+
+      <article class="hero-card color-card">
+        <div class="hero-copy">
+          <p>COLOR</p>
+          <h2>ROULETTE</h2>
+          <small>Угадай цвет и умножь награду!</small>
+        </div>
+        <div class="color-wheel" aria-hidden="true"><b></b></div>
+        <button class="play-btn" type="button" data-open-game="color">Играть <span data-icon="chevron"></span></button>
+      </article>
+    </section>
+
+    <section class="view" id="view-profile" data-view="profile">
+      <div class="profile-hero">
+        <div class="profile-bg"></div>
+        <button class="icon-float left" type="button"><span data-icon="volume"></span></button>
+        <button class="icon-float right" type="button"><span data-icon="settings"></span></button>
+        <div class="avatar big" id="profileAvatar">S</div>
+        <h2 id="profileName">StarLucky</h2>
+        <div class="mini-balance"><span data-icon="star-fill"></span><span id="profileBalance">0</span></div>
+      </div>
+      <button class="wide-gold" type="button" data-open-topup>Пополнить <span data-icon="arrow-down"></span></button>
+      <div class="stats-grid">
+        <div class="stat-card"><span data-icon="users"></span><small>Приглашено</small><b id="invitedCount">0</b></div>
+        <div class="stat-card"><small>Получено</small><b id="refEarned">0 ⭐</b><a href="#" data-view-link="tasks">Рефералы <span data-icon="chevron"></span></a></div>
+      </div>
+      <div class="progress-card">
+        <div class="level-bubble" id="levelValue">0</div>
+        <div class="progress-bar"><i id="xpProgress"></i><span id="xpText">0 / 10000 EXP</span></div>
+        <button type="button" data-view-link="bonuses">Боевой пропуск <span data-icon="chevron"></span></button>
+      </div>
+      <div class="profile-list">
+        <button type="button"><span class="level-bubble sm">1</span><b>Кэшбек</b><em id="cashbackValue">0.5%</em><span data-icon="chevron"></span></button>
+        <button type="button"><span data-icon="gift"></span><b>Инвентарь</b><em id="inventoryCount">0 предметов</em><span data-icon="chevron"></span></button>
+      </div>
+    </section>
+
+    <section class="view" id="view-cases" data-view="cases">
+      <div class="page-head"><h2>Кейсы</h2><p>Открывай кейсы, собирай подарки и предметы.</p></div>
+      <div class="case-grid" id="caseGrid"></div>
+      <div class="inventory-panel">
+        <h3>Инвентарь</h3>
+        <div class="inventory-row" id="inventoryRow"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-bonuses" data-view="bonuses">
+      <div class="pass-card">
+        <div class="pass-tabs"><button class="active">БОЕВОЙ ПРОПУСК</button><button>ЗАДАНИЯ</button></div>
+        <div class="pass-hero">
+          <h2>Penguin Arc</h2>
+          <small>11/03 - 31/05</small>
+          <div class="penguin"></div>
+          <div class="pass-exp"><b id="passLevel">0</b><span id="passXp">733 / 10000 EXP</span><button type="button" data-open-topup>+</button></div>
+        </div>
+        <div class="pass-actions">
+          <button type="button" class="premium-card"><span>Разблокируй <b>PREMIUM</b> награды</span><strong>0 ⭐</strong></button>
+          <button type="button" class="leader-card"><span>Таблица лидеров</span><b>Рейтинг #225</b><span data-icon="chevron"></span></button>
+        </div>
+        <button class="claim-daily" type="button" id="dailyButton">Получить ежедневный бонус</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-tasks" data-view="tasks">
+      <div class="task-tabs"><button class="active">РОЗЫГРЫШИ <b>3</b></button><button>РЕКЛАМНЫЕ ЗАДАНИЯ</button><button>ИСТОРИЯ</button></div>
+      <div class="giveaway-card">
+        <div class="timer"><span>65</span>:<span>33</span>:<span>28</span></div>
+        <div class="gift-box"><span data-icon="gem"></span></div>
+        <h3>Dark Orchid</h3>
+        <div class="giveaway-progress"><i></i><span><b>130</b> / 3000</span></div>
+        <button type="button" data-open-topup>Пополни баланс на 2 870 ⭐ <span data-icon="chevron"></span></button>
+      </div>
+      <div class="tasks-list" id="tasksList"></div>
+    </section>
+
+    <footer class="bottom-nav">
+      <button type="button" data-nav="profile"><span data-icon="profile"></span><small>Профиль</small></button>
+      <button class="active" type="button" data-nav="games"><span data-icon="gamepad"></span><small>Игры</small></button>
+      <button type="button" data-nav="cases"><span data-icon="box"></span><small>Кейсы</small></button>
+      <button type="button" data-nav="bonuses"><span data-icon="gift"></span><small>Бонусы</small></button>
+      <button type="button" data-nav="tasks"><span data-icon="tasks"></span><small>Задания</small></button>
+      <p id="botUsername">@starlucky_bot</p>
+    </footer>
+  </main>
+
+  <div class="modal" id="gameModal" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close-modal><span data-icon="close"></span></button>
+      <h2 id="gameTitle">Star Spin</h2>
+      <p id="gameSubtitle">Выбери ставку внутренними звёздами.</p>
+      <div id="gameDynamic"></div>
+      <label class="bet-box">Ставка
+        <input id="betInput" type="number" inputmode="numeric" min="10" step="10" value="100" />
+      </label>
+      <div class="quick-bets"><button type="button" data-bet="50">50</button><button type="button" data-bet="100">100</button><button type="button" data-bet="250">250</button><button type="button" data-bet="500">500</button></div>
+      <button class="wide-gold" id="runGameButton" type="button">Запустить</button>
+      <div class="result-box" id="resultBox"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="topupModal" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close-modal><span data-icon="close"></span></button>
+      <h2>Пополнение</h2>
+      <p>TON Connect готовит транзакцию на твой кошелёк. Для теста можно начислить внутренний баланс вручную.</p>
+      <div id="ton-connect"></div>
+      <div class="topup-grid">
+        <button type="button" data-ton="0.1">0.1 TON</button>
+        <button type="button" data-ton="0.5">0.5 TON</button>
+        <button type="button" data-ton="1">1 TON</button>
+      </div>
+      <button class="wide-gold" id="mockTopupButton" type="button">Начислить 500 ⭐ тестово</button>
+      <small class="muted">Автозачисление TON требует серверной проверки транзакций через TON API / индексер.</small>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

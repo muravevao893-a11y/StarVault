@@ -1,97 +1,151 @@
-# StarVault Telegram Mini App Prototype
+# StarLucky Mini App — Railway build
 
-Красивый адаптивный прототип Telegram Mini App с вкладками:
+Готовый Railway-friendly проект в стиле чёрный + золото:
 
-- Профиль
-- Игры
-- Кейсы
-- Бонусы
-- Задания
+- Telegram Mini App UI под mobile/desktop.
+- Стартовый экран и `/start` webhook для Telegram-бота.
+- Inline-кнопки: **Канал**, **Играть**, **Поддержка**.
+- Профиль, Игры, Кейсы, Бонусы, Задания.
+- Лайв-дропы, баланс, реф-ссылка, кейсы, инвентарь, ежедневный бонус, задания.
+- Star Spin и Color Roulette на внутренней валюте `⭐`.
+- TON Connect UI + intent endpoint для подготовки TON-транзакции.
 
-Внутри есть:
+> Важно: экономика здесь сделана как внутренняя развлекательная система без вывода/обмена на деньги. Реальные ставки, выплаты и казино-механика требуют лицензии, KYC/AML, возрастных ограничений, аудита RNG и юридической проверки.
 
-- SVG-иконки вместо emoji
-- автоопределение desktop/mobile layout
-- Telegram WebApp API init/expand/theme hook
-- TON Connect UI hook для подключения кошелька
-- демо-баланс `SV`, сохранение в `localStorage`
-- Spin Wheel и Color Roulette с weighted RNG в демо-режиме
-- визуальная лента подарков/NFT, кейсы, бонусы, задания
+---
 
-## Важное ограничение
-
-Этот проект намеренно **не содержит реальных ставок, списаний, выплат, вывода подарков/NFT или автоматического приема TON/Stars на кошелёк**.
-
-Для реального проекта с денежной ценностью понадобятся как минимум:
-
-1. юридическая проверка и лицензия для азартных игр в целевых странах;
-2. возрастные ограничения, KYC/AML, лимиты, самоисключение, журнал спорных операций;
-3. серверная валидация Telegram `initData`;
-4. серверная генерация Telegram Stars invoice в валюте `XTR`;
-5. обработка `pre_checkout_query`, `successful_payment`, хранение `telegram_payment_charge_id` и `/paysupport`;
-6. отдельный backend ledger — баланс не должен считаться на фронтенде;
-7. аудит RNG/provably fair, журналирование и антифрод;
-8. TON Connect только через официальный протокол, транзакции — через server-side reconciliation и лицензированный flow;
-9. NFT/gifts sync через проверенный TON indexer/API на сервере.
-
-## Локальный запуск
+## 1. Локальный запуск
 
 ```bash
-python3 -m http.server 8080
+npm install
+npm start
 ```
 
 Открой:
 
 ```text
-http://localhost:8080
+http://localhost:3000
 ```
 
-TON Connect обычно требует HTTPS и корректный `tonconnect-manifest.json` на публичном домене. Для Telegram Mini App тоже нужен HTTPS-домен, добавленный в BotFather.
+---
 
-## Что менять перед деплоем
+## 2. Railway env
 
-1. В `tonconnect-manifest.json` замени `url`, `name`, `iconUrl` на свой HTTPS-домен.
-2. В BotFather укажи Web App URL.
-3. Вынеси демо-баланс, ставки, бонусы и коллекции на backend.
-4. Не доверяй `localStorage` и клиентскому RNG в проде.
+В Railway: **Project → Service → Variables**.
 
-## Безопасные API-контракты для будущего backend
+Минимум:
 
-```http
-POST /api/auth/telegram
-body: { initData: string }
-
-POST /api/stars/invoice
-body: { packageId: string }
-
-POST /api/payments/telegram/webhook
-body: TelegramUpdate
-
-GET /api/me/balance
-GET /api/me/gifts
-GET /api/me/nfts
-POST /api/game/spin
-POST /api/game/color
-POST /api/support/payments
+```env
+NODE_ENV=production
+APP_BASE_URL=https://your-app.up.railway.app
+PUBLIC_APP_NAME=StarLucky
+PUBLIC_MODE=production
+PUBLIC_TG_BOT_USERNAME=your_bot_username
+PUBLIC_CHANNEL_URL=https://t.me/your_channel
+PUBLIC_SUPPORT_URL=https://t.me/your_support
+PUBLIC_TON_MANIFEST_URL=https://your-app.up.railway.app/tonconnect-manifest.json
+PUBLIC_TON_RECEIVER_WALLET=UQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TELEGRAM_BOT_TOKEN=123456:botfather_token
+WEBHOOK_SECRET=random_hex_secret
+JWT_SECRET=another_random_hex_secret
 ```
 
-Сервер должен сам проверять пользователя, баланс, правила игры, лимиты и легальность операции.
+Генерация секретов на Windows PowerShell:
 
-## Deploy to Railway
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
 
-This build includes a tiny Node.js static server for Railway.
+---
 
-1. Push this folder to a GitHub repository.
-2. In Railway, create a new project and choose **Deploy from GitHub repo**.
-3. Railway should detect `package.json` and run `npm start`.
-4. After deploy, open **Settings → Networking → Public Networking** and generate a public domain.
-5. Use the generated HTTPS domain as your Telegram Mini App URL in BotFather.
-6. Update `tonconnect-manifest.json` so its `url` and `iconUrl` fields point to your real Railway/custom domain.
-
-Local run:
+## 3. Деплой на Railway
 
 ```bash
-npm start
+git init
+git add .
+git commit -m "StarLucky mini app"
+git branch -M main
+git remote add origin YOUR_GITHUB_REPO_URL
+git push -u origin main
 ```
 
-Railway supplies `PORT` automatically in production; `server.mjs` falls back to port `3000` locally.
+Railway → **New Project → Deploy from GitHub repo**.
+
+После деплоя: **Settings → Networking → Public Networking → Generate Domain**.
+
+---
+
+## 4. BotFather
+
+1. Создай бота: `/newbot`.
+2. Получи `TELEGRAM_BOT_TOKEN`.
+3. Укажи домен mini app/web app.
+4. Можно поставить аватарку `public/icon.png`.
+
+---
+
+## 5. Установка webhook для `/start`
+
+В PowerShell/Bash после деплоя:
+
+```bash
+curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+  -d "url=https://your-app.up.railway.app/api/telegram/webhook" \
+  -d "secret_token=$WEBHOOK_SECRET"
+```
+
+На Windows PowerShell удобнее так:
+
+```powershell
+$BOT_TOKEN="123456:your_token"
+$WEBHOOK_SECRET="your_webhook_secret"
+$APP_URL="https://your-app.up.railway.app"
+
+Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" -Body @{
+  url="$APP_URL/api/telegram/webhook"
+  secret_token=$WEBHOOK_SECRET
+}
+```
+
+После этого при `/start` бот отправит welcome-текст и inline-кнопки:
+
+- Канал → `PUBLIC_CHANNEL_URL`
+- Играть → mini app через `web_app`
+- Поддержка → `PUBLIC_SUPPORT_URL`
+
+---
+
+## 6. TON manifest
+
+Manifest доступен тут:
+
+```text
+https://your-app.up.railway.app/tonconnect-manifest.json
+```
+
+Он генерируется сервером из env:
+
+```json
+{
+  "url": "APP_BASE_URL",
+  "name": "PUBLIC_APP_NAME",
+  "iconUrl": "APP_BASE_URL/icon.png"
+}
+```
+
+---
+
+## 7. Где бизнес-логика
+
+- `/api/auth/telegram` — авторизация mini app через Telegram initData.
+- `/api/me` — профиль, дропы, кейсы, задания.
+- `/api/games/spin` — Star Spin.
+- `/api/games/color` — Color Roulette.
+- `/api/cases/open` — открытие кейсов.
+- `/api/bonus/daily` — ежедневный бонус.
+- `/api/tasks/claim` — выполнение заданий.
+- `/api/topup/ton-intent` — создание TON intent.
+- `/api/telegram/webhook` — Telegram webhook для `/start`.
+
+Сейчас данные хранятся в `data/db.json`. Для нормального продакшена лучше подключить Postgres через `DATABASE_URL` и заменить file storage на БД.
