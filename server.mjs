@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -18,337 +18,258 @@ const SUPPORT_URL = process.env.PUBLIC_SUPPORT_URL || 'https://t.me/';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const TON_API_BASE = (process.env.TON_API_BASE || 'https://tonapi.io').replace(/\/$/, '');
 const TON_API_KEY = process.env.TON_API_KEY || '';
-const TON_API_BASE = process.env.TON_API_BASE || 'https://tonapi.io';
-const NFT_SYNC_ENABLED = process.env.NFT_SYNC_ENABLED !== 'false';
-
-const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false }) : null;
+const NFT_SYNC_ENABLED = String(process.env.NFT_SYNC_ENABLED || 'true') === 'true';
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false } }) : null;
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store');
-  next();
-});
-app.use(express.static(path.join(__dirname, 'public')));
+app.use((req,res,next)=>{res.setHeader('Cache-Control','no-store');next();});
+app.use(express.static(path.join(__dirname,'public')));
 
-function requireDb() {
-  if (!pool) {
-    const err = new Error('DATABASE_URL is not configured');
-    err.statusCode = 500;
-    throw err;
-  }
+function id(prefix='id'){return `${prefix}_${crypto.randomBytes(12).toString('hex')}`;}
+function tgUser(req){
+  const raw = req.header('x-telegram-user') || '';
+  try { return raw ? JSON.parse(Buffer.from(raw,'base64url').toString('utf8')) : null; } catch { return null; }
 }
+function safeName(u){ return [u?.first_name,u?.last_name].filter(Boolean).join(' ').trim() || u?.username || 'Игрок'; }
+function admin(req,res,next){ if(!ADMIN_TOKEN || req.header('x-admin-token') !== ADMIN_TOKEN) return res.status(401).json({ok:false,error:'admin_token'}); next(); }
+async function q(sql, params=[]){ if(!pool) throw new Error('DATABASE_URL is not set'); return pool.query(sql, params); }
 
-async function initDb() {
-  if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id BIGSERIAL PRIMARY KEY,
-      telegram_id BIGINT UNIQUE NOT NULL,
-      first_name TEXT,
-      last_name TEXT,
-      username TEXT,
-      photo_url TEXT,
-      wallet_address TEXT,
-      balance_stars BIGINT NOT NULL DEFAULT 0 CHECK (balance_stars >= 0),
-      xp BIGINT NOT NULL DEFAULT 0 CHECK (xp >= 0),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+async function migrate(){
+  if(!pool) { console.warn('DATABASE_URL is not set. DB systems disabled.'); return; }
+  await q(`
+    create table if not exists users(
+      telegram_id text primary key,
+      display_name text not null default 'Игрок',
+      username text,
+      photo_url text,
+      balance_stars bigint not null default 0 check(balance_stars >= 0),
+      xp bigint not null default 0,
+      level int not null default 1,
+      wallet_address text,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
     );
-
-    CREATE TABLE IF NOT EXISTS ledger_entries (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      amount_stars BIGINT NOT NULL,
-      type TEXT NOT NULL,
-      external_id TEXT,
-      meta JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE(type, external_id)
+    create table if not exists ledger(
+      id text primary key,
+      telegram_id text not null references users(telegram_id) on delete cascade,
+      delta_stars bigint not null,
+      reason text not null,
+      meta jsonb not null default '{}',
+      created_at timestamptz not null default now()
     );
-
-    CREATE TABLE IF NOT EXISTS tasks (
-      id BIGSERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      reward_stars BIGINT NOT NULL DEFAULT 0 CHECK (reward_stars >= 0),
-      image_url TEXT NOT NULL DEFAULT '',
-      button_text TEXT NOT NULL DEFAULT 'Открыть',
-      button_url TEXT NOT NULL DEFAULT '',
-      is_active BOOLEAN NOT NULL DEFAULT true,
-      requires_manual_review BOOLEAN NOT NULL DEFAULT true,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    create table if not exists tasks(
+      id text primary key,
+      title text not null,
+      description text not null default '',
+      reward_stars bigint not null default 0 check(reward_stars >= 0),
+      image_url text,
+      button_text text not null default 'Открыть',
+      button_url text,
+      active boolean not null default true,
+      sort_order int not null default 0,
+      created_at timestamptz not null default now()
     );
-
-    CREATE TABLE IF NOT EXISTS task_claims (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
-      evidence TEXT NOT NULL DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      reviewed_at TIMESTAMPTZ,
-      UNIQUE(user_id, task_id)
+    create table if not exists task_claims(
+      id text primary key,
+      task_id text not null references tasks(id) on delete cascade,
+      telegram_id text not null references users(telegram_id) on delete cascade,
+      status text not null default 'pending',
+      proof text,
+      created_at timestamptz not null default now(),
+      reviewed_at timestamptz,
+      unique(task_id, telegram_id)
     );
-
-    CREATE TABLE IF NOT EXISTS gifts (
-      id BIGSERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      image_url TEXT NOT NULL DEFAULT '',
-      price_stars BIGINT NOT NULL CHECK (price_stars >= 0),
-      stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
-      is_active BOOLEAN NOT NULL DEFAULT true,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    create table if not exists gifts(
+      id text primary key,
+      title text not null,
+      description text not null default '',
+      price_stars bigint not null check(price_stars >= 0),
+      stock int not null default 0 check(stock >= 0),
+      image_url text,
+      animation_url text,
+      background_css text,
+      active boolean not null default true,
+      created_at timestamptz not null default now()
     );
-
-    CREATE TABLE IF NOT EXISTS gift_orders (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      gift_id BIGINT NOT NULL REFERENCES gifts(id) ON DELETE RESTRICT,
-      price_stars BIGINT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved','issued','cancelled')),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    create table if not exists inventory(
+      id text primary key,
+      telegram_id text not null references users(telegram_id) on delete cascade,
+      source text not null,
+      title text not null,
+      description text,
+      image_url text,
+      animation_url text,
+      background_css text,
+      collection_name text,
+      nft_address text,
+      price_label text,
+      price_value numeric,
+      meta jsonb not null default '{}',
+      created_at timestamptz not null default now(),
+      unique(telegram_id, source, nft_address)
     );
-
-    CREATE TABLE IF NOT EXISTS inventory_items (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      source TEXT NOT NULL CHECK (source IN ('gift_order','ton_nft','ton_gift','admin')),
-      title TEXT NOT NULL,
-      image_url TEXT NOT NULL DEFAULT '',
-      external_id TEXT,
-      meta JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE(user_id, source, external_id)
+    create table if not exists orders(
+      id text primary key,
+      telegram_id text not null references users(telegram_id) on delete cascade,
+      gift_id text not null references gifts(id),
+      price_stars bigint not null,
+      status text not null default 'completed',
+      created_at timestamptz not null default now()
+    );
+    create table if not exists live_drops(
+      id text primary key,
+      telegram_id text,
+      display_name text not null default 'Игрок',
+      type text not null,
+      title text not null,
+      subtitle text,
+      image_url text,
+      animation_url text,
+      background_css text,
+      price_label text,
+      price_value numeric,
+      source_id text,
+      created_at timestamptz not null default now()
     );
   `);
 }
 
-function getTelegramUserFromInitData(initData) {
-  if (!initData) return null;
-  const params = new URLSearchParams(initData);
-  const hash = params.get('hash');
-  if (!hash || !BOT_TOKEN) return null;
-  params.delete('hash');
-  const dataCheckString = [...params.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('\n');
-  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-  const calculated = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-  if (!crypto.timingSafeEqual(Buffer.from(calculated), Buffer.from(hash))) return null;
-  const authDate = Number(params.get('auth_date') || 0);
-  if (authDate && Date.now() / 1000 - authDate > 86400 * 7) return null;
-  const userRaw = params.get('user');
-  if (!userRaw) return null;
-  return JSON.parse(userRaw);
+async function upsertUser(user){
+  const telegramId = String(user?.id || 'guest');
+  const displayName = safeName(user);
+  await q(`insert into users(telegram_id, display_name, username, photo_url)
+           values($1,$2,$3,$4)
+           on conflict(telegram_id) do update set display_name=excluded.display_name, username=excluded.username, photo_url=excluded.photo_url, updated_at=now()`,
+    [telegramId, displayName, user?.username || null, user?.photo_url || null]);
+  return telegramId;
+}
+async function getUserRow(telegramId){
+  const r=await q('select * from users where telegram_id=$1',[telegramId]); return r.rows[0];
+}
+async function addLiveDrop({telegram_id, display_name, type, title, subtitle, image_url, animation_url, background_css, price_label, price_value, source_id}){
+  await q(`insert into live_drops(id,telegram_id,display_name,type,title,subtitle,image_url,animation_url,background_css,price_label,price_value,source_id)
+           values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    [id('drop'), telegram_id, display_name || 'Игрок', type, title, subtitle || null, image_url || null, animation_url || null, background_css || null, price_label || null, price_value || null, source_id || null]);
 }
 
-async function upsertUser(tgUser) {
-  requireDb();
-  const result = await pool.query(`
-    INSERT INTO users (telegram_id, first_name, last_name, username, photo_url, updated_at)
-    VALUES ($1,$2,$3,$4,$5,now())
-    ON CONFLICT (telegram_id) DO UPDATE SET
-      first_name=EXCLUDED.first_name,
-      last_name=EXCLUDED.last_name,
-      username=EXCLUDED.username,
-      photo_url=EXCLUDED.photo_url,
-      updated_at=now()
-    RETURNING *
-  `, [tgUser.id, tgUser.first_name || '', tgUser.last_name || '', tgUser.username || '', tgUser.photo_url || '']);
-  return result.rows[0];
+function extractNftName(nft){ return nft?.metadata?.name || nft?.name || nft?.collection?.name || 'NFT'; }
+function extractImage(nft){
+  return nft?.previews?.find(p=>p.resolution==='500x500')?.url || nft?.previews?.[0]?.url || nft?.metadata?.image || nft?.metadata?.image_url || nft?.metadata?.content_url || null;
 }
-
-function publicUser(row) {
-  const displayName = [row.first_name, row.last_name].filter(Boolean).join(' ') || row.username || 'Игрок';
-  const level = Math.floor(Number(row.xp || 0) / 1000) + 1;
-  return { id: row.id, telegramId: row.telegram_id, displayName, username: row.username, photoUrl: row.photo_url, walletAddress: row.wallet_address, balanceStars: Number(row.balance_stars), xp: Number(row.xp), level };
+function extractAnimation(nft){ return nft?.metadata?.animation_url || nft?.metadata?.lottie || nft?.metadata?.video || null; }
+function isGift(nft){
+  const text = `${nft?.collection?.name||''} ${nft?.metadata?.name||''} ${nft?.metadata?.description||''}`.toLowerCase();
+  return text.includes('telegram gift') || text.includes('collectible gift') || text.includes('gift');
 }
-
-async function auth(req, res, next) {
-  try {
-    const initData = req.header('x-telegram-init-data') || req.body?.initData || '';
-    const tgUser = getTelegramUserFromInitData(initData);
-    if (!tgUser) return res.status(401).json({ ok: false, error: 'Open this mini app through Telegram' });
-    req.user = await upsertUser(tgUser);
-    next();
-  } catch (e) { next(e); }
-}
-
-function admin(req, res, next) {
-  const token = req.header('x-admin-token') || req.query.token || '';
-  if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) return res.status(403).json({ ok: false, error: 'Admin token required' });
-  next();
-}
-
-async function addLedger(client, userId, amount, type, externalId, meta = {}) {
-  const id = externalId || crypto.randomUUID();
-  const ins = await client.query(`INSERT INTO ledger_entries (user_id, amount_stars, type, external_id, meta) VALUES ($1,$2,$3,$4,$5) ON CONFLICT(type, external_id) DO NOTHING RETURNING id`, [userId, amount, type, id, meta]);
-  if (!ins.rowCount) return false;
-  await client.query('UPDATE users SET balance_stars = balance_stars + $1, xp = xp + $2, updated_at=now() WHERE id=$3', [amount, Math.max(0, Math.floor(Math.abs(amount) / 10)), userId]);
-  return true;
-}
-
-app.get('/health', async (req, res) => {
-  let db = false;
-  try { if (pool) { await pool.query('SELECT 1'); db = true; } } catch {}
-  res.json({ ok: true, app: APP_NAME, db });
-});
-
-app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '7.3.0-compact-polished-ui', db: Boolean(pool), time: new Date().toISOString() }));
-app.get('/api/config', (req, res) => res.json({ appName: APP_NAME, botUsername: BOT_USERNAME, channelUrl: CHANNEL_URL, supportUrl: SUPPORT_URL, baseUrl: APP_BASE_URL }));
-
-app.post('/api/session', auth, async (req, res) => res.json({ ok: true, user: publicUser(req.user) }));
-app.get('/api/me', auth, async (req, res) => res.json({ ok: true, user: publicUser(req.user) }));
-
-app.get('/api/tasks', auth, async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT t.*, c.status AS claim_status
-    FROM tasks t
-    LEFT JOIN task_claims c ON c.task_id=t.id AND c.user_id=$1
-    WHERE t.is_active=true
-    ORDER BY t.created_at DESC
-  `, [req.user.id]);
-  res.json({ ok: true, tasks: rows });
-});
-
-app.post('/api/tasks/:id/claim', auth, async (req, res) => {
-  const taskId = Number(req.params.id);
-  const evidence = String(req.body?.evidence || '').slice(0, 2000);
-  const task = await pool.query('SELECT * FROM tasks WHERE id=$1 AND is_active=true', [taskId]);
-  if (!task.rowCount) return res.status(404).json({ ok: false, error: 'Task not found' });
-  const claim = await pool.query(`INSERT INTO task_claims (user_id, task_id, evidence, status) VALUES ($1,$2,$3,'pending') ON CONFLICT(user_id, task_id) DO UPDATE SET evidence=EXCLUDED.evidence RETURNING *`, [req.user.id, taskId, evidence]);
-  res.json({ ok: true, claim: claim.rows[0], message: 'Заявка отправлена на проверку' });
-});
-
-app.get('/api/gifts', auth, async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM gifts WHERE is_active=true ORDER BY created_at DESC');
-  res.json({ ok: true, gifts: rows });
-});
-
-app.post('/api/gifts/:id/buy', auth, async (req, res) => {
-  const giftId = Number(req.params.id);
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const user = await client.query('SELECT * FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
-    const gift = await client.query('SELECT * FROM gifts WHERE id=$1 AND is_active=true FOR UPDATE', [giftId]);
-    if (!gift.rowCount) throw Object.assign(new Error('Gift not found'), { statusCode: 404 });
-    const g = gift.rows[0];
-    if (g.stock <= 0) throw Object.assign(new Error('Out of stock'), { statusCode: 409 });
-    if (Number(user.rows[0].balance_stars) < Number(g.price_stars)) throw Object.assign(new Error('Not enough stars'), { statusCode: 402 });
-    const order = await client.query('INSERT INTO gift_orders (user_id, gift_id, price_stars) VALUES ($1,$2,$3) RETURNING *', [req.user.id, giftId, g.price_stars]);
-    await client.query('UPDATE gifts SET stock=stock-1, updated_at=now() WHERE id=$1', [giftId]);
-    await addLedger(client, req.user.id, -Number(g.price_stars), 'gift_purchase', `order:${order.rows[0].id}`, { giftId });
-    await client.query('INSERT INTO inventory_items (user_id, source, title, image_url, external_id, meta) VALUES ($1,$2,$3,$4,$5,$6)', [req.user.id, 'gift_order', g.title, g.image_url, `order:${order.rows[0].id}`, { orderId: order.rows[0].id, giftId }]);
-    await client.query('COMMIT');
-    res.json({ ok: true, order: order.rows[0] });
-  } catch (e) { await client.query('ROLLBACK'); res.status(e.statusCode || 500).json({ ok: false, error: e.message }); }
-  finally { client.release(); }
-});
-
-app.get('/api/inventory', auth, async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM inventory_items WHERE user_id=$1 ORDER BY created_at DESC', [req.user.id]);
-  res.json({ ok: true, items: rows });
-});
-
-app.post('/api/wallet', auth, async (req, res) => {
-  const address = String(req.body?.address || '').trim();
-  if (!/^(EQ|UQ)[A-Za-z0-9_-]{46,}$/.test(address)) return res.status(400).json({ ok: false, error: 'Invalid TON address' });
-  const { rows } = await pool.query('UPDATE users SET wallet_address=$1, updated_at=now() WHERE id=$2 RETURNING *', [address, req.user.id]);
-  res.json({ ok: true, user: publicUser(rows[0]) });
-});
-
-app.post('/api/ton/sync-nfts', auth, async (req, res) => {
-  if (!NFT_SYNC_ENABLED) return res.status(403).json({ ok: false, error: 'NFT sync disabled' });
-  const address = req.user.wallet_address || String(req.body?.address || '').trim();
-  if (!address) return res.status(400).json({ ok: false, error: 'Connect wallet first' });
-  const url = `${TON_API_BASE.replace(/\/$/, '')}/v2/accounts/${encodeURIComponent(address)}/nfts?limit=1000&offset=0`;
-  const headers = TON_API_KEY ? { Authorization: `Bearer ${TON_API_KEY}` } : {};
-  const response = await fetch(url, { headers });
-  if (!response.ok) return res.status(502).json({ ok: false, error: `TON API error ${response.status}` });
-  const data = await response.json();
-  const nftItems = data.nft_items || data.items || [];
-  let saved = 0;
-  for (const nft of nftItems) {
-    const title = nft.metadata?.name || nft.dns || nft.address || 'TON NFT';
-    const collection = nft.collection?.name || '';
-    const isGift = /gift|telegram|present|collectible/i.test(`${title} ${collection}`);
-    const image = nft.previews?.find?.(p => p.resolution === '500x500')?.url || nft.metadata?.image || nft.metadata?.image_url || '';
-    const externalId = nft.address || nft.index || crypto.createHash('sha256').update(JSON.stringify(nft)).digest('hex');
-    const source = isGift ? 'ton_gift' : 'ton_nft';
-    const ins = await pool.query(`INSERT INTO inventory_items (user_id, source, title, image_url, external_id, meta) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT(user_id, source, external_id) DO NOTHING`, [req.user.id, source, title, image, externalId, { collection, raw: nft }]);
-    saved += ins.rowCount;
+function normalizePrice(nft){
+  const sale = nft?.sale || nft?.metadata?.sale || null;
+  const nano = sale?.price?.value || sale?.full_price || sale?.price;
+  if(nano && !Number.isNaN(Number(nano))) {
+    const ton = Number(nano) / 1e9;
+    return { label: `${ton.toLocaleString('ru-RU',{maximumFractionDigits:2})} TON`, value: ton };
   }
-  res.json({ ok: true, total: nftItems.length, saved });
-});
-
-app.get('/api/admin/tasks', admin, async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
-  res.json({ ok: true, tasks: rows });
-});
-app.post('/api/admin/tasks', admin, async (req, res) => {
-  const b = req.body || {};
-  const { rows } = await pool.query(`INSERT INTO tasks (title, description, reward_stars, image_url, button_text, button_url, is_active, requires_manual_review) VALUES ($1,$2,$3,$4,$5,$6,$7,true) RETURNING *`, [b.title, b.description || '', Number(b.rewardStars || 0), b.imageUrl || '', b.buttonText || 'Открыть', b.buttonUrl || '', b.isActive !== false]);
-  res.json({ ok: true, task: rows[0] });
-});
-app.patch('/api/admin/tasks/:id', admin, async (req, res) => {
-  const b = req.body || {}; const id = Number(req.params.id);
-  const { rows } = await pool.query(`UPDATE tasks SET title=COALESCE($1,title), description=COALESCE($2,description), reward_stars=COALESCE($3,reward_stars), image_url=COALESCE($4,image_url), button_text=COALESCE($5,button_text), button_url=COALESCE($6,button_url), is_active=COALESCE($7,is_active), updated_at=now() WHERE id=$8 RETURNING *`, [b.title ?? null, b.description ?? null, b.rewardStars == null ? null : Number(b.rewardStars), b.imageUrl ?? null, b.buttonText ?? null, b.buttonUrl ?? null, b.isActive ?? null, id]);
-  res.json({ ok: true, task: rows[0] });
-});
-app.get('/api/admin/claims', admin, async (req, res) => {
-  const { rows } = await pool.query(`SELECT c.*, t.title, t.reward_stars, u.telegram_id, u.first_name, u.last_name, u.username FROM task_claims c JOIN tasks t ON t.id=c.task_id JOIN users u ON u.id=c.user_id ORDER BY c.created_at DESC LIMIT 200`);
-  res.json({ ok: true, claims: rows });
-});
-app.post('/api/admin/claims/:id/approve', admin, async (req, res) => {
-  const claimId = Number(req.params.id); const client = await pool.connect();
-  try { await client.query('BEGIN');
-    const q = await client.query(`SELECT c.*, t.reward_stars FROM task_claims c JOIN tasks t ON t.id=c.task_id WHERE c.id=$1 FOR UPDATE`, [claimId]);
-    if (!q.rowCount) throw Object.assign(new Error('Claim not found'), { statusCode: 404 });
-    const c = q.rows[0]; if (c.status === 'approved') throw Object.assign(new Error('Already approved'), { statusCode: 409 });
-    await addLedger(client, c.user_id, Number(c.reward_stars), 'task_reward', `claim:${claimId}`, { taskId: c.task_id });
-    await client.query(`UPDATE task_claims SET status='approved', reviewed_at=now() WHERE id=$1`, [claimId]);
-    await client.query('COMMIT'); res.json({ ok: true });
-  } catch (e) { await client.query('ROLLBACK'); res.status(e.statusCode || 500).json({ ok: false, error: e.message }); } finally { client.release(); }
-});
-app.post('/api/admin/claims/:id/reject', admin, async (req, res) => { const { rows } = await pool.query(`UPDATE task_claims SET status='rejected', reviewed_at=now() WHERE id=$1 RETURNING *`, [Number(req.params.id)]); res.json({ ok: true, claim: rows[0] }); });
-
-app.get('/api/admin/gifts', admin, async (req, res) => { const { rows } = await pool.query('SELECT * FROM gifts ORDER BY created_at DESC'); res.json({ ok: true, gifts: rows }); });
-app.post('/api/admin/gifts', admin, async (req, res) => {
-  const b = req.body || {};
-  const { rows } = await pool.query(`INSERT INTO gifts (title, description, image_url, price_stars, stock, is_active) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [b.title, b.description || '', b.imageUrl || '', Number(b.priceStars || 0), Number(b.stock || 0), b.isActive !== false]);
-  res.json({ ok: true, gift: rows[0] });
-});
-app.post('/api/admin/credit', admin, async (req, res) => {
-  const telegramId = Number(req.body?.telegramId); const amount = Number(req.body?.amountStars); const reason = String(req.body?.reason || 'admin_credit');
-  const client = await pool.connect();
-  try { await client.query('BEGIN');
-    const u = await client.query('SELECT * FROM users WHERE telegram_id=$1 FOR UPDATE', [telegramId]);
-    if (!u.rowCount) throw Object.assign(new Error('User not found'), { statusCode: 404 });
-    await addLedger(client, u.rows[0].id, amount, 'admin_credit', crypto.randomUUID(), { reason });
-    await client.query('COMMIT'); res.json({ ok: true });
-  } catch (e) { await client.query('ROLLBACK'); res.status(e.statusCode || 500).json({ ok: false, error: e.message }); } finally { client.release(); }
-});
-
-async function sendTelegramMessage(chatId) {
-  if (!BOT_TOKEN) return;
-  const reply_markup = { inline_keyboard: [[{ text: 'Канал', url: CHANNEL_URL }, { text: 'Поддержка', url: SUPPORT_URL }], [{ text: 'Играть', web_app: { url: APP_BASE_URL } }]] };
-  const text = `Добро пожаловать в ${APP_NAME}\n\nОткрывай mini app, выполняй задания и забирай награды.`;
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text, reply_markup }) });
+  return { label: nft?.metadata?.price || null, value: null };
 }
-app.post('/api/telegram/webhook', async (req, res) => {
-  try {
-    if (WEBHOOK_SECRET && req.header('x-telegram-bot-api-secret-token') !== WEBHOOK_SECRET) return res.status(403).json({ ok: false });
-    const msg = req.body?.message;
-    if (msg?.chat?.id && String(msg.text || '').startsWith('/start')) await sendTelegramMessage(msg.chat.id);
-    res.json({ ok: true });
-  } catch (e) { console.error(e); res.status(500).json({ ok: false }); }
+async function fetchTonNfts(address){
+  const url = `${TON_API_BASE}/v2/accounts/${encodeURIComponent(address)}/nfts?limit=1000&offset=0&indirect_ownership=true`;
+  const headers = TON_API_KEY ? { Authorization: `Bearer ${TON_API_KEY}` } : {};
+  const resp = await fetch(url, { headers });
+  if(!resp.ok) throw new Error(`TON API ${resp.status}`);
+  const data = await resp.json();
+  return data.nft_items || data.items || [];
+}
+
+app.get('/health',(req,res)=>res.json({ok:true,app:APP_NAME}));
+app.get('/api/version',(req,res)=>res.json({ok:true,app:'StarLucky',version:'8.1.0-real-live-drops',time:new Date().toISOString()}));
+app.get('/api/config',(req,res)=>res.json({appName:APP_NAME,baseUrl:APP_BASE_URL,botUsername:BOT_USERNAME,channelUrl:CHANNEL_URL,supportUrl:SUPPORT_URL,tonManifestUrl:`${APP_BASE_URL}/tonconnect-manifest.json`}));
+app.get('/tonconnect-manifest.json',(req,res)=>res.json({url:APP_BASE_URL||'https://example.com',name:APP_NAME,iconUrl:`${APP_BASE_URL}/icon.png`}));
+
+app.post('/api/session', async (req,res)=>{
+  try{ const telegramId=await upsertUser(req.body?.user||{}); const user=await getUserRow(telegramId); res.json({ok:true,user}); }catch(e){ res.status(500).json({ok:false,error:e.message}); }
+});
+app.get('/api/me', async (req,res)=>{
+  try{ const user=tgUser(req)||{id:'guest'}; const telegramId=await upsertUser(user); const row=await getUserRow(telegramId); const inv=await q('select * from inventory where telegram_id=$1 order by created_at desc limit 200',[telegramId]); res.json({ok:true,user:row,inventory:inv.rows}); }catch(e){ res.status(500).json({ok:false,error:e.message}); }
+});
+app.get('/api/live-drops', async (req,res)=>{
+  try{ const limit=Math.min(80, Number(req.query.limit||30)); const r=await q('select * from live_drops order by created_at desc limit $1',[limit]); res.json({ok:true,drops:r.rows}); }catch(e){ res.status(500).json({ok:false,error:e.message}); }
+});
+app.get('/api/gifts', async(req,res)=>{ try{ const r=await q('select * from gifts where active=true order by created_at desc limit 100'); res.json({ok:true,gifts:r.rows}); }catch(e){ res.status(500).json({ok:false,error:e.message}); } });
+app.post('/api/gifts/:giftId/buy', async(req,res)=>{
+  const client = await pool.connect();
+  try{
+    const user=tgUser(req)||req.body?.user||{id:'guest'}; const telegramId=await upsertUser(user);
+    await client.query('begin');
+    const u=(await client.query('select * from users where telegram_id=$1 for update',[telegramId])).rows[0];
+    const g=(await client.query('select * from gifts where id=$1 and active=true for update',[req.params.giftId])).rows[0];
+    if(!g) throw new Error('gift_not_found');
+    if(g.stock <= 0) throw new Error('out_of_stock');
+    if(Number(u.balance_stars) < Number(g.price_stars)) throw new Error('not_enough_balance');
+    await client.query('update users set balance_stars=balance_stars-$1, updated_at=now() where telegram_id=$2',[g.price_stars, telegramId]);
+    await client.query('update gifts set stock=stock-1 where id=$1',[g.id]);
+    const orderId=id('order'); const invId=id('inv');
+    await client.query('insert into orders(id,telegram_id,gift_id,price_stars) values($1,$2,$3,$4)',[orderId,telegramId,g.id,g.price_stars]);
+    await client.query(`insert into inventory(id,telegram_id,source,title,description,image_url,animation_url,background_css,price_label,price_value,meta)
+      values($1,$2,'gift',$3,$4,$5,$6,$7,$8,$9,$10)`,[invId,telegramId,g.title,g.description,g.image_url,g.animation_url,g.background_css,`${g.price_stars} ★`,g.price_stars,JSON.stringify({gift_id:g.id,order_id:orderId})]);
+    await client.query(`insert into live_drops(id,telegram_id,display_name,type,title,subtitle,image_url,animation_url,background_css,price_label,price_value,source_id)
+      values($1,$2,$3,'gift',$4,'Подарок',$5,$6,$7,$8,$9,$10)`,[id('drop'),telegramId,u.display_name,g.title,g.image_url,g.animation_url,g.background_css,`${g.price_stars} ★`,g.price_stars,invId]);
+    await client.query('commit');
+    res.json({ok:true,orderId,inventoryId:invId});
+  }catch(e){ await client.query('rollback').catch(()=>{}); res.status(400).json({ok:false,error:e.message}); }
+  finally{ client.release(); }
 });
 
-app.use((err, req, res, next) => { console.error(err); res.status(err.statusCode || 500).json({ ok: false, error: err.message || 'Server error' }); });
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.post('/api/ton/sync', async(req,res)=>{
+  try{
+    if(!NFT_SYNC_ENABLED) return res.status(403).json({ok:false,error:'nft_sync_disabled'});
+    const user=tgUser(req)||req.body?.user||{id:'guest'}; const telegramId=await upsertUser(user);
+    const wallet=String(req.body?.address||'').trim(); if(!/^(UQ|EQ|0:)/.test(wallet)) return res.status(400).json({ok:false,error:'bad_wallet'});
+    await q('update users set wallet_address=$1, updated_at=now() where telegram_id=$2',[wallet,telegramId]);
+    const nfts = await fetchTonNfts(wallet);
+    const saved=[];
+    const display = (await getUserRow(telegramId))?.display_name || safeName(user);
+    for(const nft of nfts){
+      const nftAddress = nft?.address || nft?.account?.address || nft?.raw_address;
+      if(!nftAddress) continue;
+      const title = extractNftName(nft);
+      const image = extractImage(nft);
+      const animation = extractAnimation(nft);
+      const price = normalizePrice(nft);
+      const type = isGift(nft) ? 'telegram_gift' : 'nft';
+      const collection = nft?.collection?.name || null;
+      const bg = type === 'telegram_gift' ? 'linear-gradient(135deg,rgba(255,196,90,.18),rgba(168,85,247,.12))' : 'linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,196,90,.06))';
+      const invId = id('inv');
+      const insert = await q(`insert into inventory(id,telegram_id,source,title,description,image_url,animation_url,background_css,collection_name,nft_address,price_label,price_value,meta)
+        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        on conflict(telegram_id,source,nft_address) do update set title=excluded.title,image_url=excluded.image_url,animation_url=excluded.animation_url,collection_name=excluded.collection_name,price_label=excluded.price_label,price_value=excluded.price_value,meta=excluded.meta
+        returning id`,[invId,telegramId,type,title,nft?.metadata?.description||null,image,animation,bg,collection,nftAddress,price.label,price.value,JSON.stringify(nft)]);
+      const sourceId = insert.rows[0]?.id || invId;
+      saved.push({title,image,animation,collection,nftAddress,price,type});
+      await addLiveDrop({telegram_id:telegramId,display_name:display,type,title,subtitle:collection,image_url:image,animation_url:animation,background_css:bg,price_label:price.label || 'нет цены',price_value:price.value,source_id:sourceId});
+    }
+    res.json({ok:true,count:saved.length,items:saved});
+  }catch(e){ res.status(500).json({ok:false,error:e.message}); }
+});
 
-initDb().then(() => app.listen(PORT, () => console.log(`${APP_NAME} v7.3 running on ${PORT}`))).catch(err => { console.error('DB init failed', err); process.exit(1); });
+app.get('/api/tasks', async(req,res)=>{ try{ const r=await q('select * from tasks where active=true order by sort_order asc, created_at desc'); res.json({ok:true,tasks:r.rows}); }catch(e){ res.status(500).json({ok:false,error:e.message}); } });
+app.post('/api/tasks/:taskId/claim', async(req,res)=>{ try{ const user=tgUser(req)||req.body?.user||{id:'guest'}; const telegramId=await upsertUser(user); await q('insert into task_claims(id,task_id,telegram_id,proof) values($1,$2,$3,$4) on conflict(task_id,telegram_id) do nothing',[id('claim'),req.params.taskId,telegramId,req.body?.proof||null]); res.json({ok:true,status:'pending'}); }catch(e){ res.status(400).json({ok:false,error:e.message}); } });
+
+app.get('/api/admin/gifts', admin, async(req,res)=>{ const r=await q('select * from gifts order by created_at desc'); res.json({ok:true,gifts:r.rows}); });
+app.post('/api/admin/gifts', admin, async(req,res)=>{ const b=req.body||{}; const giftId=b.id||id('gift'); await q(`insert into gifts(id,title,description,price_stars,stock,image_url,animation_url,background_css,active) values($1,$2,$3,$4,$5,$6,$7,$8,$9)
+  on conflict(id) do update set title=excluded.title,description=excluded.description,price_stars=excluded.price_stars,stock=excluded.stock,image_url=excluded.image_url,animation_url=excluded.animation_url,background_css=excluded.background_css,active=excluded.active`,[giftId,b.title,b.description||'',Number(b.price_stars||0),Number(b.stock||0),b.image_url||null,b.animation_url||null,b.background_css||null,b.active!==false]); res.json({ok:true,id:giftId}); });
+app.get('/api/admin/tasks', admin, async(req,res)=>{ const r=await q('select * from tasks order by sort_order asc, created_at desc'); res.json({ok:true,tasks:r.rows}); });
+app.post('/api/admin/tasks', admin, async(req,res)=>{ const b=req.body||{}; const taskId=b.id||id('task'); await q(`insert into tasks(id,title,description,reward_stars,image_url,button_text,button_url,active,sort_order) values($1,$2,$3,$4,$5,$6,$7,$8,$9)
+  on conflict(id) do update set title=excluded.title,description=excluded.description,reward_stars=excluded.reward_stars,image_url=excluded.image_url,button_text=excluded.button_text,button_url=excluded.button_url,active=excluded.active,sort_order=excluded.sort_order`,[taskId,b.title,b.description||'',Number(b.reward_stars||0),b.image_url||null,b.button_text||'Открыть',b.button_url||null,b.active!==false,Number(b.sort_order||0)]); res.json({ok:true,id:taskId}); });
+app.get('/api/admin/claims', admin, async(req,res)=>{ const r=await q(`select c.*,t.title,t.reward_stars,u.display_name from task_claims c join tasks t on t.id=c.task_id join users u on u.telegram_id=c.telegram_id order by c.created_at desc limit 200`); res.json({ok:true,claims:r.rows}); });
+app.post('/api/admin/claims/:claimId/approve', admin, async(req,res)=>{
+ const client=await pool.connect(); try{ await client.query('begin'); const claim=(await client.query(`select c.*,t.reward_stars,t.title,u.display_name from task_claims c join tasks t on t.id=c.task_id join users u on u.telegram_id=c.telegram_id where c.id=$1 and c.status='pending' for update`,[req.params.claimId])).rows[0]; if(!claim) throw new Error('claim_not_found'); await client.query('update task_claims set status=$1,reviewed_at=now() where id=$2',['approved',claim.id]); await client.query('update users set balance_stars=balance_stars+$1,xp=xp+$1/10,level=greatest(1,floor((xp+$1/10)/1000)+1),updated_at=now() where telegram_id=$2',[claim.reward_stars,claim.telegram_id]); await client.query('insert into ledger(id,telegram_id,delta_stars,reason,meta) values($1,$2,$3,$4,$5)',[id('led'),claim.telegram_id,claim.reward_stars,`Задание: ${claim.title}`,JSON.stringify({claim_id:claim.id})]); await client.query('commit'); res.json({ok:true}); } catch(e){ await client.query('rollback').catch(()=>{}); res.status(400).json({ok:false,error:e.message}); } finally{ client.release(); }
+});
+
+async function sendTelegramMessage(chatId){ if(!BOT_TOKEN) return; const text=`Добро пожаловать в ${APP_NAME}\n\nОткрой mini app, чтобы смотреть подарки, NFT и задания.`; const reply_markup={inline_keyboard:[[{text:'Канал',url:CHANNEL_URL},{text:'Поддержка',url:SUPPORT_URL}],[{text:'Играть',web_app:{url:APP_BASE_URL}}]]}; await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chatId,text,reply_markup})}); }
+app.post('/api/telegram/webhook', async(req,res)=>{ try{ if(WEBHOOK_SECRET && req.header('x-telegram-bot-api-secret-token')!==WEBHOOK_SECRET) return res.status(403).json({ok:false}); const msg=req.body?.message; if(msg?.chat?.id && String(msg?.text||'').startsWith('/start')) await sendTelegramMessage(msg.chat.id); res.json({ok:true}); }catch(e){ console.error(e); res.status(500).json({ok:false}); } });
+
+app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+
+migrate().then(()=>app.listen(PORT,()=>console.log(`${APP_NAME} v8.1 on ${PORT}`))).catch(e=>{console.error(e); process.exit(1);});
