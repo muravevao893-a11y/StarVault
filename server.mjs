@@ -39,6 +39,24 @@ async function q(sql, params=[]){ if(!pool) throw new Error('DATABASE_URL is not
 
 async function migrate(){
   if(!pool) { console.warn('DATABASE_URL is not set. DB systems disabled.'); return; }
+
+  // Migrate from v7.x schema (BIGINT telegram_id) to v8.x schema (TEXT telegram_id as PK)
+  const oldSchema = await q(`
+    SELECT data_type FROM information_schema.columns
+    WHERE table_name='users' AND column_name='telegram_id'
+  `);
+  if (oldSchema.rows.length > 0 && oldSchema.rows[0].data_type === 'bigint') {
+    console.log('Detected v7.x schema — migrating to v8.x...');
+    await q(`DROP TABLE IF EXISTS gift_orders CASCADE`);
+    await q(`DROP TABLE IF EXISTS inventory_items CASCADE`);
+    await q(`DROP TABLE IF EXISTS task_claims CASCADE`);
+    await q(`DROP TABLE IF EXISTS ledger_entries CASCADE`);
+    await q(`DROP TABLE IF EXISTS tasks CASCADE`);
+    await q(`DROP TABLE IF EXISTS gifts CASCADE`);
+    await q(`DROP TABLE IF EXISTS users CASCADE`);
+    console.log('Old tables dropped. Recreating with new schema...');
+  }
+
   await q(`
     create table if not exists users(
       telegram_id text primary key,
