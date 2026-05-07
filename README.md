@@ -29,7 +29,7 @@ NFT_SYNC_ENABLED=true
 
 ## Проверка
 
-`/api/version` должен вернуть `7.0.0-db-serious`.
+`/api/version` должен вернуть `7.1.0-balance-panel-fixed`.
 
 ## Админка
 
