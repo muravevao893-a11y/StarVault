@@ -197,7 +197,7 @@ app.get('/health', async (req, res) => {
   res.json({ ok: true, app: APP_NAME, db });
 });
 
-app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '7.2.0-compact-balance-pill', db: Boolean(pool), time: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '7.3.0-compact-polished-ui', db: Boolean(pool), time: new Date().toISOString() }));
 app.get('/api/config', (req, res) => res.json({ appName: APP_NAME, botUsername: BOT_USERNAME, channelUrl: CHANNEL_URL, supportUrl: SUPPORT_URL, baseUrl: APP_BASE_URL }));
 
 app.post('/api/session', auth, async (req, res) => res.json({ ok: true, user: publicUser(req.user) }));
@@ -351,4 +351,4 @@ app.post('/api/telegram/webhook', async (req, res) => {
 app.use((err, req, res, next) => { console.error(err); res.status(err.statusCode || 500).json({ ok: false, error: err.message || 'Server error' }); });
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-initDb().then(() => app.listen(PORT, () => console.log(`${APP_NAME} v7 running on ${PORT}`))).catch(err => { console.error('DB init failed', err); process.exit(1); });
+initDb().then(() => app.listen(PORT, () => console.log(`${APP_NAME} v7.3 running on ${PORT}`))).catch(err => { console.error('DB init failed', err); process.exit(1); });
