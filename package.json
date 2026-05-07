@@ -1,11 +1,12 @@
 {
   "name": "starlucky-miniapp",
-  "version": "2.0.0",
-  "description": "StarLucky Telegram Mini App with Railway server and Telegram bot webhook",
+  "version": "2.1.0",
+  "description": "StarLucky Telegram Mini App root Railway hotfix package",
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node server.mjs"
+    "dev": "node server.mjs",
+    "check": "node -e \"console.log('StarLucky root hotfix OK')\""
   },
   "engines": {
     "node": ">=18"

@@ -15,10 +15,22 @@ const DB_FILE = process.env.DB_FILE || path.join(DATA_DIR, 'db.json');
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  res.setHeader('X-App-Name', 'StarLucky');
+  res.setHeader('X-App-Version', '2.1.0-root-hotfix');
+  next();
+});
+
 app.use(express.static(PUBLIC_DIR, {
   extensions: ['html'],
-  etag: true,
-  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
 }));
 
 const defaultDb = () => ({
@@ -275,7 +287,9 @@ const cases = [
   }
 ];
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '2.1.0-root-hotfix' }));
+app.get('/api/health', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '2.1.0-root-hotfix' }));
+app.get('/api/version', (req, res) => res.json({ ok: true, app: 'StarLucky', version: '2.1.0-root-hotfix', publicDir: PUBLIC_DIR }));
 app.get('/api/config', (req, res) => res.json(publicConfig()));
 app.get('/tonconnect-manifest.json', (req, res) => {
   const cfg = publicConfig();
@@ -489,6 +503,7 @@ app.post('/api/telegram/webhook', async (req, res) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
