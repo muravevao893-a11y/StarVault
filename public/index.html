@@ -5,47 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#070707" />
   <title>StarLucky</title>
+  <link rel="icon" href="/icon.svg" />
+  <link rel="stylesheet" href="/styles.css?v=4.0.0" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root{--bg:#050505;--panel:#111;--panel2:#171717;--line:#2a2418;--gold:#ffc34f;--gold2:#ff9f1c;--txt:#f5f5f5;--muted:#9a9a9a;--red:#ff2d6f;--green:#52d47b;--safe-bottom:env(safe-area-inset-bottom,0px);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#14202b;color:var(--txt)}button{font:inherit;color:inherit;border:0;cursor:pointer}#app{height:100dvh;max-width:430px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 0 1px #222}.top{height:70px;padding:18px 16px 12px;background:#151f29;display:flex;align-items:center;justify-content:space-between}.brand{font-size:20px;font-weight:850;letter-spacing:-.6px}.brand b{color:var(--gold)}.top-actions{display:flex;gap:12px;align-items:center}.balance{display:flex;gap:8px;align-items:center;padding:9px 14px;border:1px solid #5a421e;border-radius:999px;background:linear-gradient(180deg,#202020,#101010);font-weight:800}.star{color:var(--gold);filter:drop-shadow(0 0 5px #ffb633)}.plus{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#ffd177,#f2a12b);color:#17110a;font-weight:950;font-size:31px;box-shadow:0 0 26px #ffb43c66}.content{height:calc(100dvh - 70px);overflow:auto;padding:14px 15px 118px;background:#060606;-webkit-overflow-scrolling:touch}.ref{display:inline-flex;gap:9px;align-items:center;padding:10px 14px;border-radius:999px;background:#1b1b1b;border:1px solid #332a1b;color:#eee}.section-title{margin:22px 0 12px;font-weight:850}.section-title:before{content:'';display:inline-block;width:8px;height:8px;background:var(--red);border-radius:50%;margin-right:8px;vertical-align:2px}.drops{display:flex;gap:10px;overflow:auto;padding-bottom:5px;scrollbar-width:none}.drop{min-width:62px;height:78px;border-radius:10px;background:linear-gradient(135deg,#2b2112,#111);border:1px solid #3a3022;display:grid;place-items:center;position:relative}.drop .ico{font-size:25px}.drop small{position:absolute;bottom:7px;font-size:11px;font-weight:850}.modes{margin:16px -15px 14px;border-top:1px solid #171717;border-bottom:1px solid #171717;display:grid;grid-template-columns:repeat(3,1fr);height:54px}.mode{background:#080808;color:#8f8f8f;font-weight:900}.mode.active{color:var(--gold);border-bottom:2px solid var(--gold)}.card{border:1px solid #6a4915;border-radius:16px;background:linear-gradient(135deg,#201009,#070707 58%);overflow:hidden;margin-bottom:13px;box-shadow:0 0 22px #000}.hero{min-height:185px;position:relative;padding:26px 22px;background:radial-gradient(circle at 80% 40%,#ffbd31 0 6%,#a45b10 7% 13%,#23120b 25%,transparent 55%),linear-gradient(135deg,#32140d,#070707)}.hero.color{background:radial-gradient(circle at 83% 44%,#32c66d 0 10%,#ffd54c 11% 15%,#d8378a 16% 21%,#4340d8 22% 28%,#170c0c 45%,transparent 55%),linear-gradient(135deg,#261009,#070707)}.hero h2{font-size:38px;line-height:.9;margin:0;text-shadow:0 4px 15px #000}.hero h2 span{display:block;color:var(--gold);font-size:50px}.play{position:absolute;right:16px;bottom:30px;background:#111820;border:1px solid #7b5518;border-radius:14px;padding:16px 28px;color:var(--gold);font-weight:950;font-size:22px;box-shadow:0 0 18px #000}.badge{position:absolute;right:14px;bottom:8px;border:1px solid #7b5518;color:var(--gold);background:#5b3a08aa;border-radius:12px;padding:8px 14px;font-size:24px;font-weight:950}.winner{display:flex;align-items:center;justify-content:space-between;padding:16px}.winner h3{margin:0;color:var(--gold);font-style:italic}.winner .user{display:flex;gap:10px;align-items:center;color:#ddd}.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#ffd77c,#111)}.pill{border:1px solid #7b5518;color:var(--gold);background:#16100a;border-radius:999px;padding:10px 18px;font-weight:950;font-size:21px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tile{background:#141414;border:1px solid #282828;border-radius:13px;padding:16px;min-height:115px}.tile h3{margin:0 0 10px;color:#fff}.tile b{color:var(--gold)}.wide{grid-column:1/-1}.btn{width:100%;padding:13px 16px;border-radius:12px;background:linear-gradient(180deg,#ffd072,#f6a72e);color:#201307;font-weight:950}.btn.dark{background:#181818;color:var(--gold);border:1px solid #6a4915}.btn:disabled{opacity:.45;filter:grayscale(1)}.profile-head{height:190px;border-radius:0 0 22px 22px;margin:-14px -15px 14px;background:radial-gradient(circle at center,#3b2a17,#111 58%,#070707);display:grid;place-items:center}.profile-avatar{width:82px;height:82px;border-radius:50%;background:linear-gradient(135deg,#2b2b2b,#050505);border:1px solid #49381c;display:grid;place-items:center;font-size:34px}.progress{height:19px;border-radius:999px;background:#202020;overflow:hidden;border:1px solid #2d2d2d}.progress span{display:block;height:100%;background:linear-gradient(90deg,#f5a623,#ffd979);width:0}.case{display:flex;align-items:center;gap:12px}.case-icon{width:62px;height:62px;border-radius:14px;background:linear-gradient(135deg,#5a3910,#151515);display:grid;place-items:center;font-size:31px}.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;height:86px;padding:8px 8px calc(8px + var(--safe-bottom));background:rgba(11,11,11,.98);border-top:1px solid #262626;display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 -12px 30px #000}.tab{background:transparent;color:#8d8d8d;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px}.tab svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8}.tab.active{color:var(--gold);text-shadow:0 0 12px #ffc44d}.modal{position:absolute;inset:0;background:#000b;display:none;align-items:flex-end;z-index:40}.modal.show{display:flex}.sheet{width:100%;background:#121212;border:1px solid #363636;border-radius:22px 22px 0 0;padding:18px;box-shadow:0 -10px 40px #000}.sheet h2{margin:0 0 12px}.bets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.bet{padding:11px;border-radius:10px;background:#1b1b1b;border:1px solid #3b3b3b}.bet.active{border-color:var(--gold);color:var(--gold)}.toast{position:absolute;left:16px;right:16px;bottom:100px;z-index:60;background:#151515;border:1px solid #55401c;border-radius:13px;padding:13px;transform:translateY(140%);transition:.25s}.toast.show{transform:translateY(0)}.hidden{display:none!important}.small{color:var(--muted);font-size:13px}.game-result{font-size:38px;font-weight:950;text-align:center;padding:18px;color:var(--gold)}.colors{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.color-choice{height:48px;border-radius:12px;color:#fff;font-weight:900;border:2px solid transparent}.color-choice.active{border-color:#fff}.white{background:#eee;color:#111}.green{background:#23974a}.blue{background:#2d70ff}.purple{background:#8d35ff}.orange{background:#ff9b25}.gold{background:#bd8014}@media(min-width:720px){#app{max-width:420px;border-radius:28px;margin:20px auto;height:calc(100dvh - 40px)}}
-  </style>
 </head>
 <body>
-<div id="app">
-  <header class="top"><div class="brand">Star<b>Lucky</b></div><div class="top-actions"><button class="balance" id="balanceBtn"><span class="star">★</span><span id="balance">0</span></button><button class="plus" id="topupBtn">+</button></div></header>
-  <main class="content" id="content"></main>
-  <nav class="tabbar" id="tabbar"></nav>
-  <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-const tg=window.Telegram?.WebApp; try{tg?.ready();tg?.expand();tg?.setHeaderColor('#151f29');tg?.setBackgroundColor('#050505')}catch(e){}
-const $=s=>document.querySelector(s), fmt=n=>Number(n).toLocaleString('ru-RU');
-const icons={profile:'<svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>',games:'<svg viewBox="0 0 24 24"><path d="M6 12h12M9 9v6"/><path d="M15 10h.01M18 14h.01"/><rect x="3" y="8" width="18" height="10" rx="5"/></svg>',cases:'<svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',bonuses:'<svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg>',tasks:'<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 13h6M9 18h3"/></svg>'};
-const defaults={balance:2950,tab:'games',drops:[['🗡️','1.2K'],['💎','950'],['🔫','700'],['🌟','500'],['🧰','300'],['🧸','250'],['🥷','400']],level:1,exp:733,inventory:['Starter Star'],tasks:{join:false,spin:false,case:false},bonusDay:0,lastBonus:'',history:[]};
-let st=JSON.parse(localStorage.getItem('starlucky-state')||'null')||defaults; const save=()=>localStorage.setItem('starlucky-state',JSON.stringify(st));
-function toast(t){const el=$('#toast');el.innerHTML=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2300)}
-function setBal(v){st.balance=Math.max(0,Math.round(v));$('#balance').textContent=fmt(st.balance);save()}
-function nav(){const tabs=[['profile','Профиль'],['games','Игры'],['cases','Кейсы'],['bonuses','Бонусы'],['tasks','Задания']];$('#tabbar').innerHTML=tabs.map(([id,t])=>`<button class="tab ${st.tab===id?'active':''}" data-tab="${id}">${icons[id]}<span>${t}</span></button>`).join('');document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{st.tab=b.dataset.tab;save();render()})}
-function liveDrops(){return `<button class="ref" onclick="copyRef()">🔗 Реф. ссылка</button><div class="section-title">Лайв дропы</div><div class="drops">${st.drops.map(d=>`<div class="drop"><div class="ico">${d[0]}</div><small>${d[1]} ★</small></div>`).join('')}</div>`}
-window.copyRef=()=>{const link=`https://t.me/${cfg.botUsername||'StarLucky_bot'}?start=ref_${tg?.initDataUnsafe?.user?.id||'user'}`;navigator.clipboard?.writeText(link);toast('Реферальная ссылка скопирована')}
-let cfg={}; async function loadCfg(){try{cfg=await (await fetch('/api/config',{cache:'no-store'})).json()}catch(e){cfg={botUsername:'StarLucky_bot'}}}
-function modes(){return `<div class="modes"><button class="mode active">⚔ ARCADE</button><button class="mode">↗ PVP</button><button class="mode">ϟ PVE</button></div>`}
-function games(){return `${liveDrops()}${modes()}<section class="card"><div class="hero"><button class="btn dark" style="position:absolute;right:14px;top:14px;width:auto;padding:7px 11px">i</button><h2>STAR<span>SPIN</span></h2><button class="play" onclick="openSpin()">Играть ›</button><div class="badge">x2.5</div></div><div class="winner"><div><h3>САМЫЙ ВЕЗУЧИЙ</h3><div class="user"><div class="avatar"></div><div>Алексей<br><span class="small">Сегодня</span></div></div></div><div class="pill">+1500 ★</div></div></section><section class="card"><div class="hero color"><h2>COLOR<span>ROULETTE</span></h2><p class="small">Угадай цвет и умножь награду!</p><button class="play" onclick="openColor()">Играть ›</button></div></section>`}
-window.openSpin=()=>openSheet(`<h2>Star Spin</h2><div class="small">Выбери ставку. Результат считается локально, баланс обновляется сразу.</div>${bets()}<button class="btn" onclick="spinGame()">Крутить</button><div id="gameResult" class="game-result"></div>`)
-function bets(){return `<div class="bets">${[50,100,250,500].map((b,i)=>`<button class="bet ${i==1?'active':''}" onclick="document.querySelectorAll('.bet').forEach(x=>x.classList.remove('active'));this.classList.add('active')" data-bet="${b}">${b} ★</button>`).join('')}</div>`}
-window.spinGame=()=>{let bet=+document.querySelector('.bet.active').dataset.bet;if(st.balance<bet)return toast('Не хватает звёзд');const items=[[0.5,28],[2,32],[2.5,20],[3,11],[5,6],[8,2.2],[10,.8]];let r=Math.random()*100,acc=0,m=0.5;for(const [x,p]of items){acc+=p;if(r<=acc){m=x;break}}let win=Math.floor(bet*m);setBal(st.balance-bet+win);st.exp+=20;st.tasks.spin=true;st.history.unshift(`Spin: ${bet} → ${win}`);save();$('#gameResult').textContent=`x${m} • +${win} ★`;toast(win>=bet?'Неплохо, баланс обновлён':'Повезёт в следующий раз')}
-window.openColor=()=>openSheet(`<h2>Color Roulette</h2>${bets()}<div class="colors">${[['white','Белый x2'],['green','Зелёный x5'],['blue','Синий x3'],['purple','Фиолет x8'],['orange','Оранж x10'],['gold','Gold x20']].map((c,i)=>`<button data-c="${c[0]}" class="color-choice ${c[0]} ${i==0?'active':''}" onclick="document.querySelectorAll('.color-choice').forEach(x=>x.classList.remove('active'));this.classList.add('active')">${c[1]}</button>`).join('')}</div><br><button class="btn" onclick="colorGame()">Запустить</button><div id="gameResult" class="game-result"></div>`)
-window.colorGame=()=>{let bet=+document.querySelector('.bet.active').dataset.bet;if(st.balance<bet)return toast('Не хватает звёзд');let pick=document.querySelector('.color-choice.active').dataset.c;let colors={white:[2,38],blue:[3,24],green:[5,18],purple:[8,10],orange:[10,7],gold:[20,3]};let r=Math.random()*100,acc=0,hit='white';for(const [c,a]of Object.entries(colors)){acc+=a[1];if(r<=acc){hit=c;break}}let win=hit===pick?Math.floor(bet*colors[hit][0]):0;setBal(st.balance-bet+win);st.exp+=15;save();$('#gameResult').textContent=`${hit.toUpperCase()} • ${win?`+${win} ★`:'0 ★'}`;toast(win?'Цвет угадан!':'Цвет не совпал')}
-function profile(){let pct=Math.min(100,st.exp/10000*100);return `<div class="profile-head"><div style="text-align:center"><div class="profile-avatar">★</div><h2>${tg?.initDataUnsafe?.user?.username||'marooow'}</h2><b class="star">★ ${fmt(st.balance)}</b></div></div><button class="btn dark" onclick="openTopup()">Пополнить ↙</button><br><br><div class="grid"><div class="tile"><h3>Рефералы</h3><b>0</b><div class="small">Получено 0 ★</div></div><div class="tile"><h3>Кэшбек</h3><b>0.5%</b><div class="small">Раз в неделю</div></div><div class="tile wide"><h3>Level ${st.level}</h3><div class="progress"><span style="width:${pct}%"></span></div><div class="small">${st.exp} / 10000 EXP</div></div><div class="tile wide"><h3>История</h3><div class="small">${st.history.slice(0,4).join('<br>')||'Пока пусто'}</div></div></div>`}
-function cases(){const cs=[['Lucky Box','🧰',300],['Gold Star','🌟',500],['Premium Gift','🎁',900],['Crystal Drop','💎',1200]];return `${liveDrops()}<div class="grid">${cs.map(c=>`<div class="tile wide case"><div class="case-icon">${c[1]}</div><div style="flex:1"><h3>${c[0]}</h3><div class="small">Цена ${c[2]} ★</div></div><button class="btn" style="width:100px" onclick="openCase('${c[0]}',${c[2]})">Открыть</button></div>`).join('')}<div class="tile wide"><h3>Инвентарь</h3><div class="small">${st.inventory.join('<br>')}</div></div></div>`}
-window.openCase=(name,price)=>{if(st.balance<price)return toast('Не хватает звёзд');const loot=['Small Star +80','Gold Token','Gift Fragment','Lucky Badge','Rare Star +450'];const item=loot[Math.floor(Math.random()*loot.length)];setBal(st.balance-price+(item.includes('+')?parseInt(item.match(/\d+/)[0]):0));st.inventory.unshift(item);st.tasks.case=true;st.exp+=40;save();render();toast(`${name}: ${item}`)}
-function bonuses(){let today=new Date().toDateString(),can=st.lastBonus!==today;return `<div class="grid"><div class="tile wide"><h3>Ежедневный бонус</h3><p class="small">Забирай 250 ★ раз в день.</p><button class="btn" ${can?'':'disabled'} onclick="dailyBonus()">${can?'Забрать 250 ★':'Уже забрано'}</button></div><div class="tile"><h3>Battle Pass</h3><b>${st.exp} EXP</b><p class="small">Награды открываются за активность.</p></div><div class="tile"><h3>Рейтинг</h3><b>#225</b><p class="small">Поднимайся играми и заданиями.</p></div></div>`}
-window.dailyBonus=()=>{st.lastBonus=new Date().toDateString();setBal(st.balance+250);st.exp+=25;save();render();toast('+250 ★ начислено')}
-function tasks(){const list=[['join','Подписаться на канал',300],['spin','Сыграть в Star Spin',150],['case','Открыть любой кейс',200]];return `<div class="grid">${list.map(t=>`<div class="tile wide"><h3>${t[1]}</h3><div class="small">Награда ${t[2]} ★</div><button class="btn ${st.tasks[t[0]]?'dark':''}" onclick="task('${t[0]}',${t[2]})">${st.tasks[t[0]]?'Получить':'Выполнить'}</button></div>`).join('')}</div>`}
-window.task=(id,rew)=>{if(id==='join'&&!st.tasks.join){st.tasks.join=true;window.open(cfg.channelUrl||'#','_blank');save();render();return} if(st.tasks[id]){st.tasks[id]=false;setBal(st.balance+rew);st.exp+=20;save();render();toast(`+${rew} ★ задание закрыто`)}else toast('Сначала выполни условие')}
-function openSheet(html){$('#sheet').innerHTML=html+`<br><button class="btn dark" onclick="closeSheet()">Закрыть</button>`;$('#modal').classList.add('show')} window.closeSheet=()=>$('#modal').classList.remove('show');$('#modal').onclick=e=>{if(e.target.id==='modal')closeSheet()}
-function openTopup(){openSheet(`<h2>Пополнение</h2><div class="small">В этой сборке кнопки интерфейса работают, а реальные платежи подключаются через серверную проверку транзакций.</div><br><button class="btn" onclick="setBal(st.balance+1000);closeSheet();toast('+1000 ★ тестово начислено')">Тестово +1000 ★</button><br><br><button class="btn dark" onclick="toast('TON Connect endpoint готов к подключению')">TON Wallet</button>`)} window.openTopup=openTopup;$('#topupBtn').onclick=openTopup;
-function render(){setBal(st.balance);nav();const pages={profile,games,cases,bonuses,tasks};$('#content').innerHTML=pages[st.tab]()} loadCfg().then(render);
-</script>
-</body></html>
+  <div class="phone-shell">
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="brand" aria-label="StarLucky"><span>Star</span><b>Lucky</b><i></i></div>
+        <div class="top-actions">
+          <button class="balance-chip" id="balanceChip" type="button" aria-label="Баланс"><span class="star mini"></span><strong id="balanceText">0</strong></button>
+          <button class="round-plus" id="openDeposit" type="button" aria-label="Пополнить">+</button>
+        </div>
+      </header>
+
+      <main class="viewport" id="viewport">
+        <section class="screen active" id="screen-games">
+          <button class="ref-pill" id="refBtn" type="button"><span class="link-icon"></span>Реф. ссылка</button>
+
+          <div class="section-title"><span class="pink-dot"></span><b>Лайв дропы</b></div>
+          <div class="drop-tape" id="dropTape"></div>
+
+          <div class="mode-tabs" role="tablist">
+            <button class="active" type="button">⚔ ARCADE</button>
+            <button type="button">↗ PVP</button>
+            <button type="button">ϟ PVE</button>
+          </div>
+
+          <article class="hero-game star-spin" id="spinHero">
+            <button class="info-btn" type="button">i</button>
+            <div class="hero-copy">
+              <h1>STAR<br><span>SPIN</span></h1>
+              <p>Колесо множителей</p>
+            </div>
+            <div class="wheel-graphic" id="spinWheel"><span></span></div>
+            <button class="play-btn" id="playSpin" type="button">Играть ›</button>
+            <div class="x-badge" id="spinBadge">x2.5</div>
+          </article>
+
+          <article class="lucky-card">
+            <div>
+              <h2>САМЫЙ<br>ВЕЗУЧИЙ</h2>
+              <div class="winner">
+                <div class="avatar small" id="winnerAvatar">A</div>
+                <div><strong id="winnerName">Алексей</strong><span>Сегодня</span></div>
+              </div>
+            </div>
+            <div class="win-chip">+<span id="winnerWin">1500</span> <span class="star tiny"></span></div>
+          </article>
+
+          <article class="hero-game color-game">
+            <div class="hero-copy">
+              <h1>COLOR<br><span>ROULETTE</span></h1>
+              <p>Угадай цвет и умножь награду</p>
+            </div>
+            <div class="color-wheel"></div>
+            <button class="play-btn" id="playColor" type="button">Играть ›</button>
+          </article>
+        </section>
+
+        <section class="screen" id="screen-profile">
+          <article class="profile-head">
+            <button class="sound" type="button">×</button>
+            <button class="settings" type="button">⚙</button>
+            <div class="avatar big" id="profileAvatar">★</div>
+            <h1 id="profileName">Игрок</h1>
+            <div class="profile-stars"><span class="star tiny"></span><strong id="profileBalance">0</strong></div>
+            <button class="wide-outline" id="depositFromProfile" type="button">Пополнить ↙</button>
+          </article>
+
+          <div class="profile-grid">
+            <article class="stat-card"><b>Рефералы</b><strong id="refsCount">0</strong><span>Получено <i id="refsReward">0</i> ★</span></article>
+            <article class="stat-card"><b>Кэшбек</b><strong id="cashbackText">0.5%</strong><span>Раз в неделю</span></article>
+          </div>
+
+          <article class="pass-card">
+            <div class="level-row"><strong>Level <span id="levelText">1</span></strong><span><b id="expText">0</b> / 10000 EXP</span></div>
+            <div class="progress"><i id="expFill"></i></div>
+          </article>
+
+          <article class="history-card">
+            <h2>История</h2>
+            <div id="historyList"></div>
+          </article>
+        </section>
+
+        <section class="screen" id="screen-cases">
+          <div class="page-title"><h1>Кейсы</h1><p>Открывай кейсы и собирай инвентарь</p></div>
+          <div class="cases-grid" id="casesGrid"></div>
+          <div class="section-title"><b>Инвентарь</b></div>
+          <div class="inventory" id="inventoryList"></div>
+        </section>
+
+        <section class="screen" id="screen-bonuses">
+          <div class="page-title"><h1>Бонусы</h1><p>Забирай награды и повышай активность</p></div>
+          <article class="bonus-main">
+            <div class="bonus-art">★</div>
+            <h2>Ежедневный бонус</h2>
+            <p>Забирай 150 звезд один раз в день.</p>
+            <button class="gold-button" id="dailyBtn" type="button">Забрать 150 ★</button>
+          </article>
+          <article class="bonus-main muted-card">
+            <h2>Реферальный бонус</h2>
+            <p>Копируй ссылку и приглашай друзей.</p>
+            <button class="dark-button" id="copyRefBtn" type="button">Скопировать ссылку</button>
+          </article>
+        </section>
+
+        <section class="screen" id="screen-tasks">
+          <div class="page-title"><h1>Задания</h1><p>Выполняй задания и забирай звезды</p></div>
+          <div id="tasksList"></div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Навигация">
+        <button data-screen="profile" type="button"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>Профиль</span></button>
+        <button class="active" data-screen="games" type="button"><svg viewBox="0 0 24 24"><path d="M6 12h4m-2-2v4M15 13h.01M18 11h.01"/><rect x="3" y="8" width="18" height="10" rx="5"/></svg><span>Игры</span></button>
+        <button data-screen="cases" type="button"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Кейсы</span></button>
+        <button data-screen="bonuses" type="button"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg><span>Бонусы</span></button>
+        <button data-screen="tasks" type="button"><svg viewBox="0 0 24 24"><path d="M9 11l2 2 4-4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Задания</span></button>
+      </nav>
+
+      <div class="modal" id="depositModal" aria-hidden="true">
+        <div class="sheet">
+          <div class="grabber"></div>
+          <h2>Пополнение</h2>
+          <p>Выбери сумму для внутреннего баланса StarLucky.</p>
+          <div class="amount-grid" id="amountGrid"></div>
+          <button class="gold-button" id="confirmDeposit" type="button">Начислить</button>
+          <button class="dark-button" id="closeDeposit" type="button">Закрыть</button>
+        </div>
+      </div>
+
+      <div class="modal" id="gameModal" aria-hidden="true">
+        <div class="sheet game-sheet">
+          <div class="grabber"></div>
+          <h2 id="gameModalTitle">Игра</h2>
+          <p id="gameModalText">Результат</p>
+          <button class="gold-button" id="gameModalOk" type="button">Окей</button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+  <script src="/app.js?v=4.0.0"></script>
+</body>
+</html>
