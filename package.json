@@ -1,15 +1,9 @@
 {
-  "name": "starlucky-miniapp",
-  "version": "4.0.0-full-fixed",
+  "name": "starlucky-v6",
+  "version": "6.0.0",
   "type": "module",
   "private": true,
-  "scripts": {
-    "start": "node server.mjs"
-  },
-  "dependencies": {
-    "express": "^4.19.2"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "express": "^4.19.2" },
+  "engines": { "node": ">=20" }
 }

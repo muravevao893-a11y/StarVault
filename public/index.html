@@ -3,153 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#070707" />
   <title>StarLucky</title>
-  <link rel="icon" href="/icon.svg" />
-  <link rel="stylesheet" href="/styles.css?v=4.0.0" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    :root{--bg:#030303;--panel:rgba(14,14,15,.72);--panel2:rgba(24,18,9,.62);--line:rgba(255,200,88,.22);--line2:rgba(255,255,255,.08);--text:#fff;--muted:#a5a5ae;--gold:#ffc65a;--gold2:#ff9f1c;--pink:#ff2f7d;--green:#67e8a5;--nav:76px;--top:74px;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;width:100%;height:100%;background:#000;color:var(--text);overflow:hidden}button{font:inherit;color:inherit;border:0;cursor:pointer}.app{width:100%;max-width:430px;height:100dvh;margin:0 auto;background:radial-gradient(circle at 85% -8%,rgba(255,198,90,.13),transparent 30%),radial-gradient(circle at 2% 15%,rgba(255,159,28,.10),transparent 28%),#030303;position:relative;overflow:hidden}.app:before{content:"";position:absolute;inset:-40px;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%25" height="100%25" filter="url(%23n)" opacity=".18"/></svg>');opacity:.09;pointer-events:none}.top{height:var(--top);display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;background:rgba(10,13,16,.72);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.06);position:relative;z-index:20}.brand{font-size:22px;font-weight:950;letter-spacing:-.7px;text-shadow:0 2px 12px rgba(0,0,0,.6)}.brand span{color:var(--gold);text-shadow:0 0 18px rgba(255,198,90,.4)}.topRight{display:flex;align-items:center;gap:9px}.balance{height:46px;display:flex;align-items:center;gap:8px;padding:0 13px;border:1px solid var(--line);border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));font-weight:950;box-shadow:0 0 22px rgba(255,190,70,.08)}.plus{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#ffd572,#ffad34);color:#160f04;font-size:32px;font-weight:950;box-shadow:0 0 25px rgba(255,179,48,.36)}.star{width:18px;height:18px;fill:var(--gold);filter:drop-shadow(0 0 9px rgba(255,198,90,.6))}.content{position:absolute;top:var(--top);bottom:var(--nav);left:0;right:0;overflow-y:auto;padding:14px 16px 24px;overscroll-behavior:contain}.content::-webkit-scrollbar{width:0}.screen{display:none}.screen.active{display:block}.pill{height:38px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.08);display:inline-flex;align-items:center;gap:8px;font-weight:760;color:#eee}.sectionTitle{margin:17px 0 10px;font-weight:900;display:flex;align-items:center;gap:8px}.dot{width:8px;height:8px;background:var(--pink);box-shadow:0 0 15px var(--pink);border-radius:50%}.drops{display:flex;gap:10px;overflow-x:auto;padding-bottom:3px}.drops::-webkit-scrollbar{height:0}.drop{min-width:65px;height:78px;border-radius:12px;background:linear-gradient(140deg,rgba(255,198,90,.20),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.09);display:grid;place-items:center;position:relative;overflow:hidden}.drop:after{content:"";position:absolute;inset:auto -20px -35px -20px;height:50px;background:radial-gradient(circle,rgba(255,198,90,.28),transparent 60%)}.drop .emoji{font-size:27px}.drop b{position:absolute;bottom:7px;font-size:11px}.modeTabs{height:54px;margin:14px -16px 16px;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}.modeTabs button{background:transparent;color:#999;font-weight:900;position:relative}.modeTabs button.active{color:var(--gold)}.modeTabs button.active:after{content:"";position:absolute;left:0;right:16px;bottom:0;height:2px;background:var(--gold);box-shadow:0 0 14px var(--gold)}.card{border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,rgba(255,200,88,.10),rgba(255,255,255,.025) 45%,rgba(255,159,28,.05));box-shadow:inset 0 0 0 1px rgba(255,255,255,.025),0 14px 34px rgba(0,0,0,.28);overflow:hidden}.gameCard{min-height:182px;padding:22px 20px;margin-bottom:14px;position:relative;isolation:isolate}.gameCard h2{margin:0;font-size:34px;line-height:.94;letter-spacing:-1px;text-transform:uppercase;font-weight:1000}.gameCard h2 span{display:block;color:var(--gold);text-shadow:0 8px 22px rgba(255,178,30,.22)}.gameSub{margin:11px 0;color:var(--muted);font-size:13px}.wheelArt{position:absolute;width:186px;height:186px;right:-24px;top:12px;border-radius:50%;background:conic-gradient(from var(--rot,0deg),#ffc64d,#ff3ca5,#673cff,#20d987,#fdf089,#ff8a1d,#ffc64d);filter:drop-shadow(0 0 28px rgba(255,198,90,.25));transition:transform 3.4s cubic-bezier(.08,.77,.12,1);transform:rotate(var(--spin,0deg))}.wheelArt:before{content:"";position:absolute;inset:24px;border-radius:50%;background:#1a1209;border:10px solid rgba(255,198,90,.68)}.wheelArt:after{content:"★";position:absolute;inset:69px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#ffd978,#ff9f1c);color:#251704;font-size:34px;box-shadow:0 0 24px rgba(255,198,90,.48)}.play{position:absolute;right:17px;bottom:20px;min-width:128px;height:54px;border-radius:16px;background:#080d10;border:1px solid var(--line);color:var(--gold);font-size:20px;font-weight:1000;box-shadow:0 0 22px rgba(255,198,90,.14)}.badge{position:absolute;right:17px;bottom:82px;padding:5px 12px;border-radius:11px;border:1px solid var(--line);background:rgba(255,198,90,.11);color:var(--gold);font-size:22px;font-weight:1000}.infoBtn{position:absolute;right:15px;top:15px;width:30px;height:30px;border-radius:10px;background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.1);color:var(--gold);font-weight:900}.mini{padding:16px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 28px rgba(0,0,0,.22)}.mini h3{margin:0 0 8px;color:#fff;font-size:20px}.mini p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.35}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.goldBtn,.darkBtn{width:100%;height:45px;border-radius:14px;font-weight:950}.goldBtn{background:linear-gradient(180deg,#ffd575,#ffa829);color:#160f04;box-shadow:0 0 22px rgba(255,179,48,.16)}.darkBtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#fff}.profileHero{min-height:168px;padding:18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;background:radial-gradient(circle at 50% 0%,rgba(255,198,90,.17),transparent 45%),rgba(255,255,255,.03)}.avatar{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;background:#090909;border:1px solid var(--line);box-shadow:0 0 25px rgba(255,198,90,.16);overflow:hidden;color:#fff;font-size:28px;font-weight:950}.avatar img{width:100%;height:100%;object-fit:cover}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)}.row:last-child{border-bottom:0}.progress{height:10px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}.progress i{display:block;height:100%;width:var(--v,8%);background:linear-gradient(90deg,#ff9f1c,#ffd66f)}.inventoryTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px}.inventoryTabs button{height:38px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);font-weight:850;color:var(--muted)}.inventoryTabs button.active{color:#171006;background:linear-gradient(180deg,#ffd575,#ffa829)}.itemsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.itemCard{min-height:156px;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);overflow:hidden}.itemPic{height:104px;background:radial-gradient(circle at 50% 40%,rgba(255,198,90,.22),rgba(255,255,255,.04));display:grid;place-items:center;font-size:38px}.itemPic img{width:100%;height:100%;object-fit:cover}.itemText{padding:10px;font-size:12px}.itemText b{display:block;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.itemText span{color:var(--muted);font-size:11px}.nav{position:absolute;left:0;right:0;bottom:0;height:var(--nav);padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(5,1fr);background:rgba(7,8,9,.94);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.08);z-index:30}.nav button{background:transparent;color:#8d8d96;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;font-size:12px;font-weight:700}.nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2}.nav button.active{color:var(--gold);text-shadow:0 0 15px rgba(255,198,90,.5)}.modal{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(9px);display:none;align-items:flex-end;z-index:60}.modal.active{display:flex}.sheet{width:100%;max-height:82dvh;overflow:auto;padding:20px 16px 24px;background:#080809;border-radius:24px 24px 0 0;border-top:1px solid var(--line);box-shadow:0 -18px 38px rgba(0,0,0,.55)}.sheet h2{margin:0 0 10px}.amounts,.colors{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.amounts button,.colors button{height:47px;border-radius:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-weight:900}.amounts button.active,.colors button.active{background:linear-gradient(180deg,#ffd575,#ffa829);color:#160f04}.toast{position:absolute;left:16px;right:16px;bottom:calc(var(--nav) + 10px);padding:13px 15px;border-radius:14px;background:rgba(15,15,16,.98);border:1px solid var(--line);color:var(--gold);font-weight:900;z-index:90;transform:translateY(22px);opacity:0;transition:.22s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}.caseBox{width:96px;height:86px;border-radius:20px;margin:8px auto 14px;display:grid;place-items:center;background:linear-gradient(145deg,#2b1906,#090909);border:1px solid var(--line);font-size:44px;box-shadow:0 0 25px rgba(255,198,90,.12);transition:.25s}.caseBox.opening{animation:shake .65s infinite}.caseRailWrap{height:112px;overflow:hidden;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:#070707;position:relative;margin:12px 0}.caseRailWrap:after{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--gold);box-shadow:0 0 14px var(--gold)}.caseRail{height:100%;display:flex;gap:8px;padding:10px;transform:translateX(0);transition:transform 3s cubic-bezier(.08,.78,.08,1)}.caseItem{min-width:88px;border-radius:13px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;text-align:center;font-size:26px}.caseItem b{font-size:11px;color:var(--gold)}.colorWheelModal .marker{width:3px;height:116px;background:var(--gold);box-shadow:0 0 16px var(--gold);position:absolute;left:50%;top:0;z-index:3}.colorRailWrap{height:116px;border-radius:16px;background:#070707;border:1px solid rgba(255,255,255,.08);overflow:hidden;position:relative;margin:14px 0}.colorRail{height:100%;display:flex;transition:transform 3.2s cubic-bezier(.08,.78,.08,1)}.colorCell{min-width:86px;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:1000;text-shadow:0 1px 4px rgba(0,0,0,.4)}.syncBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.walletBox{font-size:12px;color:var(--muted);word-break:break-all}.loader{height:4px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:10px;display:none}.loader.show{display:block}.loader i{display:block;width:34%;height:100%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:load 1s infinite}@keyframes load{from{transform:translateX(-100%)}to{transform:translateX(300%)}}@keyframes shake{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-4deg) scale(1.03)}75%{transform:rotate(4deg) scale(1.03)}}@media(min-width:760px){body{display:grid;place-items:center}.app{height:min(900px,100dvh);border:1px solid rgba(255,255,255,.08);border-radius:22px}}
+  </style>
 </head>
 <body>
-  <div class="phone-shell">
-    <div class="app" id="app">
-      <header class="topbar">
-        <div class="brand" aria-label="StarLucky"><span>Star</span><b>Lucky</b><i></i></div>
-        <div class="top-actions">
-          <button class="balance-chip" id="balanceChip" type="button" aria-label="Баланс"><span class="star mini"></span><strong id="balanceText">0</strong></button>
-          <button class="round-plus" id="openDeposit" type="button" aria-label="Пополнить">+</button>
-        </div>
-      </header>
+<div class="app">
+  <header class="top"><div class="brand">Star<span>Lucky</span></div><div class="topRight"><div class="balance"><svg class="star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.58 1.1 6.47L12 17.35 6.2 20.4l1.1-6.47-4.7-4.58 6.5-.95L12 2.5z"/></svg><span id="balance">0</span></div><button class="plus" id="openDeposit">+</button></div></header>
+  <main class="content">
+    <section id="games" class="screen active">
+      <button class="pill" id="refBtn">🔗 Реф. ссылка</button>
+      <div class="sectionTitle"><span class="dot"></span>Лайв дропы</div><div class="drops" id="drops"></div>
+      <div class="modeTabs"><button class="active">⚔ ARCADE</button><button>↗ PVP</button><button>ϟ PVE</button></div>
+      <div class="card gameCard"><button class="infoBtn">i</button><h2>STAR<span>SPIN</span></h2><p class="gameSub">Ставка 100 звезд. Колесо крутится с реальными шансами.</p><div class="wheelArt" id="spinWheel"></div><div class="badge" id="spinBadge">x2.5</div><button class="play" id="playSpin">Играть ›</button></div>
+      <div class="card gameCard"><button class="infoBtn">i</button><h2>COLOR<span>ROULETTE</span></h2><p class="gameSub">Выбери цвет, запусти ленту и забери множитель.</p><div class="wheelArt" style="--rot:38deg;opacity:.82"></div><button class="play" id="openColor">Играть ›</button></div>
+      <div class="mini"><h3>Последние действия</h3><div id="historyShort"></div></div>
+    </section>
 
-      <main class="viewport" id="viewport">
-        <section class="screen active" id="screen-games">
-          <button class="ref-pill" id="refBtn" type="button"><span class="link-icon"></span>Реф. ссылка</button>
+    <section id="profile" class="screen">
+      <div class="card profileHero"><div class="avatar" id="avatar">★</div><h2 id="displayName" style="margin:4px 0 0">Игрок</h2><b style="color:var(--gold)">★ <span id="profileBalance">0</span></b><button class="goldBtn" id="profileDeposit">Пополнить</button></div>
+      <div class="grid" style="margin-top:12px"><div class="mini"><h3>Рефералы</h3><b style="color:var(--gold);font-size:20px" id="refs">0</b><p>Получено <span id="refEarned">0</span> ★</p></div><div class="mini"><h3>Кэшбек</h3><b style="color:var(--gold);font-size:20px" id="cashback">0.5%</b><p>Раз в неделю</p></div></div>
+      <div class="mini" style="margin-top:12px"><div class="row"><b>Level <span id="level">1</span></b><span><b id="exp">0</b> / 10000 EXP</span></div><div class="progress"><i id="expBar"></i></div></div>
+      <div class="mini" style="margin-top:12px"><h3>История</h3><div id="history"></div></div>
+    </section>
 
-          <div class="section-title"><span class="pink-dot"></span><b>Лайв дропы</b></div>
-          <div class="drop-tape" id="dropTape"></div>
+    <section id="cases" class="screen">
+      <div class="sectionTitle">Кейсы</div><div class="grid" id="caseGrid"></div>
+      <div class="sectionTitle">Инвентарь</div><div class="inventoryTabs"><button data-inv="internal" class="active">Кейсы</button><button data-inv="nfts">NFT</button><button data-inv="gifts">Подарки</button></div>
+      <div class="mini"><div class="syncBar"><button class="goldBtn" id="connectWallet" style="max-width:170px">TON Wallet</button><button class="darkBtn" id="syncNfts" style="max-width:170px">Синхра</button></div><div class="walletBox" id="walletBox">Кошелек не подключён</div><div class="loader" id="syncLoader"><i></i></div></div>
+      <div id="inventoryGrid" class="itemsGrid" style="margin-top:12px"></div>
+    </section>
 
-          <div class="mode-tabs" role="tablist">
-            <button class="active" type="button">⚔ ARCADE</button>
-            <button type="button">↗ PVP</button>
-            <button type="button">ϟ PVE</button>
-          </div>
-
-          <article class="hero-game star-spin" id="spinHero">
-            <button class="info-btn" type="button">i</button>
-            <div class="hero-copy">
-              <h1>STAR<br><span>SPIN</span></h1>
-              <p>Колесо множителей</p>
-            </div>
-            <div class="wheel-graphic" id="spinWheel"><span></span></div>
-            <button class="play-btn" id="playSpin" type="button">Играть ›</button>
-            <div class="x-badge" id="spinBadge">x2.5</div>
-          </article>
-
-          <article class="lucky-card">
-            <div>
-              <h2>САМЫЙ<br>ВЕЗУЧИЙ</h2>
-              <div class="winner">
-                <div class="avatar small" id="winnerAvatar">A</div>
-                <div><strong id="winnerName">Алексей</strong><span>Сегодня</span></div>
-              </div>
-            </div>
-            <div class="win-chip">+<span id="winnerWin">1500</span> <span class="star tiny"></span></div>
-          </article>
-
-          <article class="hero-game color-game">
-            <div class="hero-copy">
-              <h1>COLOR<br><span>ROULETTE</span></h1>
-              <p>Угадай цвет и умножь награду</p>
-            </div>
-            <div class="color-wheel"></div>
-            <button class="play-btn" id="playColor" type="button">Играть ›</button>
-          </article>
-        </section>
-
-        <section class="screen" id="screen-profile">
-          <article class="profile-head">
-            <button class="sound" type="button">×</button>
-            <button class="settings" type="button">⚙</button>
-            <div class="avatar big" id="profileAvatar">★</div>
-            <h1 id="profileName">Игрок</h1>
-            <div class="profile-stars"><span class="star tiny"></span><strong id="profileBalance">0</strong></div>
-            <button class="wide-outline" id="depositFromProfile" type="button">Пополнить ↙</button>
-          </article>
-
-          <div class="profile-grid">
-            <article class="stat-card"><b>Рефералы</b><strong id="refsCount">0</strong><span>Получено <i id="refsReward">0</i> ★</span></article>
-            <article class="stat-card"><b>Кэшбек</b><strong id="cashbackText">0.5%</strong><span>Раз в неделю</span></article>
-          </div>
-
-          <article class="pass-card">
-            <div class="level-row"><strong>Level <span id="levelText">1</span></strong><span><b id="expText">0</b> / 10000 EXP</span></div>
-            <div class="progress"><i id="expFill"></i></div>
-          </article>
-
-          <article class="history-card">
-            <h2>История</h2>
-            <div id="historyList"></div>
-          </article>
-        </section>
-
-        <section class="screen" id="screen-cases">
-          <div class="page-title"><h1>Кейсы</h1><p>Открывай кейсы и собирай инвентарь</p></div>
-          <div class="cases-grid" id="casesGrid"></div>
-          <div class="section-title"><b>Инвентарь</b></div>
-          <div class="inventory" id="inventoryList"></div>
-        </section>
-
-        <section class="screen" id="screen-bonuses">
-          <div class="page-title"><h1>Бонусы</h1><p>Забирай награды и повышай активность</p></div>
-          <article class="bonus-main">
-            <div class="bonus-art">★</div>
-            <h2>Ежедневный бонус</h2>
-            <p>Забирай 150 звезд один раз в день.</p>
-            <button class="gold-button" id="dailyBtn" type="button">Забрать 150 ★</button>
-          </article>
-          <article class="bonus-main muted-card">
-            <h2>Реферальный бонус</h2>
-            <p>Копируй ссылку и приглашай друзей.</p>
-            <button class="dark-button" id="copyRefBtn" type="button">Скопировать ссылку</button>
-          </article>
-        </section>
-
-        <section class="screen" id="screen-tasks">
-          <div class="page-title"><h1>Задания</h1><p>Выполняй задания и забирай звезды</p></div>
-          <div id="tasksList"></div>
-        </section>
-      </main>
-
-      <nav class="bottom-nav" aria-label="Навигация">
-        <button data-screen="profile" type="button"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>Профиль</span></button>
-        <button class="active" data-screen="games" type="button"><svg viewBox="0 0 24 24"><path d="M6 12h4m-2-2v4M15 13h.01M18 11h.01"/><rect x="3" y="8" width="18" height="10" rx="5"/></svg><span>Игры</span></button>
-        <button data-screen="cases" type="button"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Кейсы</span></button>
-        <button data-screen="bonuses" type="button"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg><span>Бонусы</span></button>
-        <button data-screen="tasks" type="button"><svg viewBox="0 0 24 24"><path d="M9 11l2 2 4-4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Задания</span></button>
-      </nav>
-
-      <div class="modal" id="depositModal" aria-hidden="true">
-        <div class="sheet">
-          <div class="grabber"></div>
-          <h2>Пополнение</h2>
-          <p>Выбери сумму для внутреннего баланса StarLucky.</p>
-          <div class="amount-grid" id="amountGrid"></div>
-          <button class="gold-button" id="confirmDeposit" type="button">Начислить</button>
-          <button class="dark-button" id="closeDeposit" type="button">Закрыть</button>
-        </div>
-      </div>
-
-      <div class="modal" id="gameModal" aria-hidden="true">
-        <div class="sheet game-sheet">
-          <div class="grabber"></div>
-          <h2 id="gameModalTitle">Игра</h2>
-          <p id="gameModalText">Результат</p>
-          <button class="gold-button" id="gameModalOk" type="button">Окей</button>
-        </div>
-      </div>
-
-      <div class="toast" id="toast"></div>
-    </div>
-  </div>
-  <script src="/app.js?v=4.0.0"></script>
+    <section id="bonuses" class="screen"><div class="sectionTitle">Бонусы</div><div class="mini"><h3>Ежедневный бонус</h3><p>Забирай награду раз в день.</p><button class="goldBtn" id="dailyBonus">Забрать 150 звезд</button></div><div class="mini" style="margin-top:12px"><h3>Реферальная ссылка</h3><p>Ссылка копируется с твоим Telegram ID.</p><button class="darkBtn" id="copyRef">Скопировать</button></div></section>
+    <section id="tasks" class="screen"><div class="sectionTitle">Задания</div><div id="tasksList"></div></section>
+  </main>
+  <nav class="nav"><button data-screen="profile"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>Профиль</button><button data-screen="games" class="active"><svg viewBox="0 0 24 24"><path d="M6 12h4m-2-2v4M15 13h.01M18 11h.01"/><rect x="3" y="8" width="18" height="10" rx="5"/></svg>Игры</button><button data-screen="cases"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>Кейсы</button><button data-screen="bonuses"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/></svg>Бонусы</button><button data-screen="tasks"><svg viewBox="0 0 24 24"><path d="M9 11l2 2 4-4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Задания</button></nav>
+  <div class="modal" id="depositModal"><div class="sheet"><h2>Пополнение баланса</h2><p class="gameSub">Внутренние звезды приложения. Реальные платежи подключаются отдельно через сервер.</p><div class="amounts" id="amounts"></div><button class="goldBtn" id="confirmDeposit">Начислить</button><button class="darkBtn" style="margin-top:10px" id="closeDeposit">Закрыть</button></div></div>
+  <div class="modal colorWheelModal" id="colorModal"><div class="sheet"><h2>Color Roulette</h2><div class="colors" id="colorPick"></div><div class="colorRailWrap"><div class="marker"></div><div class="colorRail" id="colorRail"></div></div><button class="goldBtn" id="startColor">Запустить за 100 ★</button><button class="darkBtn" style="margin-top:10px" id="closeColor">Закрыть</button></div></div>
+  <div class="modal" id="caseModal"><div class="sheet"><h2 id="caseTitle">Кейс</h2><div class="caseBox" id="caseBox">🎁</div><div class="caseRailWrap"><div class="caseRail" id="caseRail"></div></div><button class="goldBtn" id="caseOpenBtn">Открыть</button><button class="darkBtn" style="margin-top:10px" id="caseClose">Закрыть</button></div></div>
+  <div class="toast" id="toast"></div>
+</div>
+<script>
+const tg=window.Telegram?.WebApp;tg?.ready?.();tg?.expand?.();
+let config={};fetch('/api/config').then(r=>r.json()).then(c=>{config=c;initTon()}).catch(()=>{});
+const $=id=>document.getElementById(id);const fmt=n=>Number(n).toLocaleString('ru-RU');const today=()=>new Date().toISOString().slice(0,10);
+const state=JSON.parse(localStorage.getItem('starlucky_v6')||'null')||{balance:2950,exp:733,level:1,refs:0,refEarned:0,inventory:[],nfts:[],gifts:[],history:[],tasks:{},lastDaily:'',wallet:''};let activeInv='internal';let tonUI=null;
+const save=()=>localStorage.setItem('starlucky_v6',JSON.stringify(state));function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}function hist(t){state.history.unshift({t,time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});state.history=state.history.slice(0,12)}function add(n,r){state.balance+=n;state.exp+=Math.max(10,Math.floor(Math.abs(n)/3));state.level=Math.max(1,Math.floor(state.exp/1000)+1);hist(`${r}: ${n>0?'+':''}${n}`);save();render()}function spend(n){if(state.balance<n){toast('Недостаточно звезд');return false}state.balance-=n;save();render();return true}function weighted(a){let t=a.reduce((s,x)=>s+x.w,0),r=Math.random()*t;for(const x of a){r-=x.w;if(r<=0)return x}return a[0]}
+function userName(){const u=tg?.initDataUnsafe?.user||{};return [u.first_name,u.last_name].filter(Boolean).join(' ')||u.username||'Игрок'}function avatar(){const u=tg?.initDataUnsafe?.user||{};const av=$('avatar');if(u.photo_url){av.innerHTML=`<img src="${u.photo_url}" alt="avatar">`}else av.textContent=(userName()[0]||'★').toUpperCase()}
+const drops=['🗡️','💎','🔫','🌟','💼','🧸','🛡️','🔨'];function renderDrops(){$('drops').innerHTML=drops.map((d,i)=>`<div class="drop"><span class="emoji">${d}</span><b>${['1.2K','950','700','500','300','250','400','350'][i]} ★</b></div>`).join('')}
+const caseTypes=[{name:'Lucky Box',price:300,emoji:'🎁',items:[['⭐ Star Dust',80,'✨'],['Gold Gift',180,'🎁'],['Crystal NFT',420,'💎'],['Rare Ticket',900,'🎫']]},{name:'Royal Case',price:900,emoji:'💼',items:[['Gold Crown',250,'👑'],['Lucky Cat',550,'🐱'],['Neon Pass',1200,'🪪'],['Royal Gift',2200,'🏆']]},{name:'NFT Crate',price:1600,emoji:'📦',items:[['Chain Badge',500,'🔗'],['TON Gem',1300,'💎'],['Gift Pass',2500,'🎟️'],['Legend NFT',5200,'🪐']]}];let selectedCase=null;
+function renderCases(){$('caseGrid').innerHTML=caseTypes.map((c,i)=>`<div class="mini"><h3>${c.emoji} ${c.name}</h3><p>Цена ${fmt(c.price)} ★<br>Анимированная прокрутка награды.</p><button class="goldBtn" onclick="openCaseModal(${i})">Открыть</button></div>`).join('')}window.openCaseModal=i=>{selectedCase=i;$('caseTitle').textContent=caseTypes[i].name;$('caseOpenBtn').textContent=`Открыть за ${caseTypes[i].price} ★`;$('caseRail').style.transition='none';$('caseRail').style.transform='translateX(0)';fillCaseRail();$('caseModal').classList.add('active')};function fillCaseRail(win){const c=caseTypes[selectedCase];let arr=[];for(let i=0;i<36;i++){const it=c.items[i%c.items.length];arr.push(`<div class="caseItem"><div>${it[2]}</div><b>${it[0]}</b></div>`)}$('caseRail').innerHTML=arr.join('')}function openSelectedCase(){const c=caseTypes[selectedCase];if(!spend(c.price))return;const win=weighted(c.items.map((it,i)=>({name:it[0],value:it[1],emoji:it[2],w:[45,30,18,7][i]})));$('caseBox').classList.add('opening');fillCaseRail(win);setTimeout(()=>{$('caseRail').style.transition='transform 3.05s cubic-bezier(.08,.78,.08,1)';$('caseRail').style.transform='translateX(-2450px)'},80);setTimeout(()=>{$('caseBox').classList.remove('opening');state.inventory.push({name:win.name,value:win.value,emoji:win.emoji,source:c.name,ts:Date.now()});add(win.value,c.name);state.tasks.open_case=true;toast(`${win.name}: +${fmt(win.value)} ★`);renderInventory()},3300)}
+const tasks=[['profile','Открыть профиль',100],['spin','Сыграть Star Spin',150],['open_case','Открыть кейс',250],['sync','Синхронизировать NFT',300],['daily','Забрать ежедневный бонус',120]];function renderTasks(){$('tasksList').innerHTML=tasks.map(([id,t,r])=>`<div class="mini" style="margin-bottom:12px"><h3>${t}</h3><p>Награда: ${r} ★</p><button class="${state.tasks[id]?'darkBtn':'goldBtn'}" onclick="claimTask('${id}')" ${state.tasks[id]?'disabled':''}>${state.tasks[id]?'Выполнено':'Получить'}</button></div>`).join('')}window.claimTask=id=>{if(state.tasks[id])return;const t=tasks.find(x=>x[0]===id);state.tasks[id]=true;add(t[2],`Задание «${t[1]}»`);toast(`+${t[2]} ★`)};
+function renderInventory(){let arr=activeInv==='internal'?state.inventory:activeInv==='nfts'?state.nfts:state.gifts;const grid=$('inventoryGrid');if(!arr.length){grid.innerHTML=`<div class="mini" style="grid-column:1/-1"><p>${activeInv==='internal'?'Открой кейс — предметы появятся тут.':'Подключи TON и нажми «Синхра».'}</p></div>`;return}grid.innerHTML=arr.slice().reverse().map(i=>`<div class="itemCard"><div class="itemPic">${i.image?`<img src="${i.image}" loading="lazy">`:(i.emoji||'🎁')}</div><div class="itemText"><b>${i.name}</b><span>${i.collectionName||i.source||fmt(i.value||0)+' ★'}</span></div></div>`).join('')}
+function renderHistory(){const html=state.history.length?state.history.map(x=>`<div class="row"><span>${x.t}</span><b>${x.time}</b></div>`).join(''):'<p>История пустая</p>';$('history').innerHTML=html;$('historyShort').innerHTML=html}
+function render(){['balance','profileBalance'].forEach(id=>$(id).textContent=fmt(state.balance));$('displayName').textContent=userName();avatar();$('refs').textContent=state.refs;$('refEarned').textContent=fmt(state.refEarned);$('level').textContent=state.level;$('exp').textContent=fmt(state.exp);$('expBar').style.setProperty('--v',Math.min(100,(state.exp%10000)/100)+'%');$('cashback').textContent=(0.5+state.level*.1).toFixed(1)+'%';$('walletBox').textContent=state.wallet?`Кошелек: ${state.wallet}`:'Кошелек не подключён';renderDrops();renderCases();renderTasks();renderInventory();renderHistory();save()}
+function initTon(){try{if(!window.TON_CONNECT_UI)return;tonUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:config.tonManifestUrl||'/tonconnect-manifest.json'});tonUI.onStatusChange(w=>{if(w?.account?.address){state.wallet=w.account.address;save();render();toast('TON кошелек подключён')}})}catch(e){console.warn(e)}}async function connectWallet(){if(!tonUI)return toast('TON Connect не загрузился');await tonUI.openModal()}async function syncNfts(){if(!state.wallet)return toast('Сначала подключи TON Wallet');$('syncLoader').classList.add('show');try{const r=await fetch(`/api/ton/nfts?address=${encodeURIComponent(state.wallet)}`);const data=await r.json();if(!data.ok)throw new Error(data.error||'sync failed');state.nfts=data.nfts||[];state.gifts=data.gifts||[];state.tasks.sync=true;hist(`NFT sync: ${state.nfts.length} NFT, ${state.gifts.length} gifts`);toast(`Синхра: ${state.nfts.length} NFT / ${state.gifts.length} подарков`);save();render()}catch(e){toast('Не удалось синхронизировать NFT')}finally{$('syncLoader').classList.remove('show')}}
+let selectedAmount=1000;const am=[100,500,1000,2500,5000,10000];$('amounts').innerHTML=am.map(a=>`<button data-a="${a}" class="${a===selectedAmount?'active':''}">${fmt(a)} ★</button>`).join('');document.querySelectorAll('#amounts button').forEach(b=>b.onclick=()=>{selectedAmount=+b.dataset.a;document.querySelectorAll('#amounts button').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
+const colors=[{name:'Белый',x:2,w:48,c:'#f8fafc'},{name:'Зелёный',x:5,w:23,c:'#22c55e'},{name:'Синий',x:8,w:15,c:'#3b82f6'},{name:'Фиолетовый',x:12,w:9,c:'#a855f7'},{name:'Золотой',x:20,w:5,c:'#fbbf24'}];let picked='Белый';$('colorPick').innerHTML=colors.map((c,i)=>`<button class="${i===0?'active':''}" data-color="${c.name}">${c.name}<br>x${c.x}</button>`).join('');document.querySelectorAll('#colorPick button').forEach(b=>b.onclick=()=>{picked=b.dataset.color;document.querySelectorAll('#colorPick button').forEach(x=>x.classList.remove('active'));b.classList.add('active')});function fillColorRail(){let html='';for(let i=0;i<38;i++){const c=colors[i%colors.length];html+=`<div class="colorCell" style="background:${c.c};color:${c.name==='Белый'?'#111':'#fff'}">${c.name}<br>x${c.x}</div>`}$('colorRail').innerHTML=html}$('startColor').onclick=()=>{if(!spend(100))return;fillColorRail();$('colorRail').style.transition='none';$('colorRail').style.transform='translateX(0)';const result=weighted(colors);setTimeout(()=>{$('colorRail').style.transition='transform 3.2s cubic-bezier(.08,.78,.08,1)';$('colorRail').style.transform=`translateX(-${2100+colors.findIndex(c=>c.name===result.name)*86}px)`},60);setTimeout(()=>{if(result.name===picked){const win=100*result.x;add(win,`Color ${result.name}`);toast(`Угадал ${result.name}: +${win} ★`)}else{hist(`Color: выпал ${result.name}`);toast(`Выпал ${result.name}. Не угадал`);save();render()}},3400)};fillColorRail();
+$('playSpin').onclick=()=>{if(!spend(100))return;state.tasks.spin=true;const result=weighted([{x:.5,w:36},{x:2,w:28},{x:2.5,w:20},{x:3,w:10},{x:5,w:4},{x:8,w:1.5},{x:10,w:.5}]);const deg=1800+Math.floor(Math.random()*720);$('spinWheel').style.setProperty('--spin',deg+'deg');setTimeout(()=>{$('spinBadge').textContent='x'+result.x;const win=Math.floor(100*result.x);add(win,'Star Spin');toast(`Star Spin x${result.x}: +${win} ★`)},3450)};
+$('openDeposit').onclick=$('profileDeposit').onclick=()=>$('depositModal').classList.add('active');$('closeDeposit').onclick=()=>$('depositModal').classList.remove('active');$('confirmDeposit').onclick=()=>{add(selectedAmount,'Пополнение');$('depositModal').classList.remove('active');toast(`+${fmt(selectedAmount)} ★`)};$('openColor').onclick=()=>$('colorModal').classList.add('active');$('closeColor').onclick=()=>$('colorModal').classList.remove('active');$('caseClose').onclick=()=>$('caseModal').classList.remove('active');$('caseOpenBtn').onclick=openSelectedCase;$('connectWallet').onclick=connectWallet;$('syncNfts').onclick=syncNfts;$('dailyBonus').onclick=()=>{if(state.lastDaily===today())return toast('Бонус уже забран');state.lastDaily=today();state.tasks.daily=true;add(150,'Ежедневный бонус');toast('+150 ★')};async function copyRef(){const u=tg?.initDataUnsafe?.user?.id||'user';const username=config.botUsername||'StarLucky_bot';const link=`https://t.me/${username}?start=ref_${u}`;await navigator.clipboard?.writeText(link);toast('Реферальная ссылка скопирована')}$('copyRef').onclick=$('refBtn').onclick=copyRef;
+document.querySelectorAll('.nav button').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$(btn.dataset.screen).classList.add('active');if(btn.dataset.screen==='profile')state.tasks.profile=true;save();render()});document.querySelectorAll('.inventoryTabs button').forEach(b=>b.onclick=()=>{activeInv=b.dataset.inv;document.querySelectorAll('.inventoryTabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderInventory()});
+render();
+</script>
 </body>
 </html>
