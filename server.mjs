@@ -68,6 +68,13 @@ async function initDb(){
   );
   create table if not exists wallets(
     id bigserial primary key, user_id bigint references users(id), address text not null, created_at timestamptz default now(), unique(user_id,address)
+  );
+  create table if not exists star_payments(
+    id bigserial primary key, user_id bigint references users(id), stars_amount bigint not null, bonus_amount bigint not null default 0, total_amount bigint not null,
+    payload text unique not null, status text not null default 'created', invoice_link text default '', telegram_payment_charge_id text default '', created_at timestamptz default now(), paid_at timestamptz
+  );
+  create table if not exists ton_payments(
+    id bigserial primary key, user_id bigint references users(id), stars_amount bigint not null, bonus_amount bigint not null default 0, ton_amount text not null, wallet_address text default '', receiver_address text default '', memo text unique not null, status text not null default 'created', created_at timestamptz default now(), paid_at timestamptz
   );`);
 }
 initDb().catch(e=>console.error('DB init failed', e));
@@ -106,9 +113,63 @@ function levelFromXp(xp){ return Math.max(1, Math.floor(Number(xp||0)/1000)+1); 
 async function addDrop(client,userId,item){ await client.query(`insert into live_drops(user_id,title,price_label,image_url,animation_url,bg_css,source) values($1,$2,$3,$4,$5,$6,$7)`, [userId,item.title,item.price_label||'',item.image_url||'',item.animation_url||'',item.bg_css||'',item.source||'gift']); }
 
 app.get('/health', async (req,res)=>{ let db=false; try{ if(pool){await q('select 1'); db=true;} }catch{} res.json({ok:true, app:APP, db}); });
-app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'9.0.0-plush-style-db-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'9.1.0-production-deposit-ui'}));
 app.get('/api/config',(req,res)=>res.json({appName:APP, baseUrl:BASE, botUsername:BOT, channelUrl:CHANNEL, supportUrl:SUPPORT, tonReceiverWallet:process.env.PUBLIC_TON_RECEIVER_WALLET||'', tonManifestUrl:`${BASE || ''}/tonconnect-manifest.json`}));
 app.get('/tonconnect-manifest.json',(req,res)=>res.json({url:BASE || `https://${req.get('host')}`, name:APP, iconUrl:`${BASE || `https://${req.get('host')}`}/icon.png`}));
+
+
+const STAR_PACKS = [30,100,200,500,1000,2500,5000];
+function bonusForStars(amount, kind='stars'){
+  if(kind==='ton'){
+    if(amount>=5000) return 500;
+    if(amount>=2500) return 125;
+    if(amount>=1000) return 100;
+    if(amount>=500) return 50;
+    if(amount>=200) return 20;
+    if(amount>=100) return 10;
+    if(amount>=30) return 3;
+  }
+  if(kind==='send'){
+    if(amount>=5000) return 500;
+    if(amount>=2500) return 125;
+    if(amount>=1000) return 50;
+    if(amount>=500) return 25;
+    if(amount>=200) return 10;
+    if(amount>=100) return 5;
+    if(amount>=30) return 1;
+  }
+  return 0;
+}
+function tonEstimate(amount){ return (amount / Number(process.env.STARS_PER_TON || 173.5)).toFixed(2); }
+app.get('/api/pay/packs', requireUser, async (req,res)=>{
+  res.json({ok:true, packs: STAR_PACKS.map(amount=>({amount, ton:tonEstimate(amount), tonBonus:bonusForStars(amount,'ton'), sendBonus:bonusForStars(amount,'send')}))});
+});
+app.post('/api/pay/stars/create', requireUser, async (req,res)=>{
+  const amount = Number(req.body.amount);
+  if(!STAR_PACKS.includes(amount)) return res.status(400).json({ok:false,error:'bad_amount'});
+  if(!BOT_TOKEN) return res.status(500).json({ok:false,error:'TELEGRAM_BOT_TOKEN_missing'});
+  const payload = `stars:${req.user.id}:${amount}:${crypto.randomBytes(8).toString('hex')}`;
+  const title = `${amount} Stars`;
+  const description = `Пополнение баланса StarLucky на ${amount} звезд`;
+  const body = {title, description, payload, provider_token:'', currency:'XTR', prices:[{label:title, amount}]};
+  const tgResp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const data = await tgResp.json().catch(()=>({ok:false,description:'bad_json'}));
+  if(!data.ok) return res.status(502).json({ok:false,error:data.description||'invoice_failed'});
+  await q(`insert into star_payments(user_id,stars_amount,bonus_amount,total_amount,payload,invoice_link,status) values($1,$2,0,$2,$3,$4,'created')`, [req.user.id, amount, payload, data.result]);
+  res.json({ok:true, invoiceLink:data.result, payload, amount});
+});
+app.post('/api/pay/ton/create', requireUser, async (req,res)=>{
+  const amount = Number(req.body.amount);
+  const wallet = String(req.body.wallet||'').trim();
+  if(!STAR_PACKS.includes(amount)) return res.status(400).json({ok:false,error:'bad_amount'});
+  const receiver = process.env.PUBLIC_TON_RECEIVER_WALLET || '';
+  if(!receiver) return res.status(500).json({ok:false,error:'receiver_wallet_missing'});
+  const bonus = bonusForStars(amount,'ton');
+  const ton = tonEstimate(amount);
+  const memo = `SL-${req.user.id}-${amount}-${crypto.randomBytes(4).toString('hex')}`;
+  await q(`insert into ton_payments(user_id,stars_amount,bonus_amount,ton_amount,wallet_address,receiver_address,memo,status) values($1,$2,$3,$4,$5,$6,$7,'created')`, [req.user.id,amount,bonus,ton,wallet,receiver,memo]);
+  res.json({ok:true, amount, bonus, total:amount+bonus, ton, receiver, memo});
+});
 
 app.get('/api/me', requireUser, async (req,res)=>{
   const inv = await q('select count(*)::int c from inventory where user_id=$1',[req.user.id]);
@@ -208,6 +269,34 @@ app.post('/api/admin/credit', admin, async(req,res)=>{const b=req.body; const us
 app.post('/api/admin/task/approve', admin, async(req,res)=>{const id=Number(req.body.submission_id); const client=await pool.connect(); try{await client.query('begin'); const sub=(await client.query(`select s.*,t.reward from task_submissions s join tasks t on t.id=s.task_id where s.id=$1 and s.status='pending' for update`,[id])).rows[0]; if(!sub) throw Object.assign(new Error('submission_not_found'),{status:404}); await client.query(`update task_submissions set status='approved',decided_at=now() where id=$1`,[id]); await client.query('update users set balance=balance+$1,xp=xp+20 where id=$2',[sub.reward,sub.user_id]); await client.query('insert into ledger(user_id,amount,kind,ref) values($1,$2,$3,$4)',[sub.user_id,sub.reward,'task_reward',String(sub.task_id)]); await client.query('commit'); res.json({ok:true});}catch(e){await client.query('rollback'); res.status(e.status||500).json({ok:false,error:e.message});}finally{client.release();}});
 
 async function sendStart(chatId){ if(!BOT_TOKEN) return; const play = BASE || ''; const text=`Добро пожаловать в ${APP}\n\nОткрывай mini app, участвуй в событиях, собирай подарки и управляй инвентарём.`; const reply_markup={inline_keyboard:[[{text:'Канал',url:CHANNEL},{text:'Поддержка',url:SUPPORT}],[{text:'Играть',web_app:{url:play}}]]}; await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chatId,text,reply_markup})}); }
-app.post('/api/telegram/webhook', async(req,res)=>{ try{ if(WEBHOOK_SECRET && req.header('x-telegram-bot-api-secret-token')!==WEBHOOK_SECRET) return res.status(403).json({ok:false}); const msg=req.body?.message; if(msg?.chat?.id && msg?.text?.startsWith('/start')) await sendStart(msg.chat.id); res.json({ok:true}); }catch(e){console.error(e); res.status(500).json({ok:false});} });
+
+app.post('/api/telegram/webhook', async(req,res)=>{ try{
+  if(WEBHOOK_SECRET && req.header('x-telegram-bot-api-secret-token')!==WEBHOOK_SECRET) return res.status(403).json({ok:false});
+  const upd=req.body||{};
+  if(upd.pre_checkout_query){
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerPreCheckoutQuery`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pre_checkout_query_id:upd.pre_checkout_query.id,ok:true})});
+    return res.json({ok:true});
+  }
+  const msg=upd.message;
+  if(msg?.successful_payment){
+    const sp=msg.successful_payment;
+    const payload=sp.invoice_payload;
+    const client=await pool.connect();
+    try{
+      await client.query('begin');
+      const pay=(await client.query(`select * from star_payments where payload=$1 for update`,[payload])).rows[0];
+      if(pay && pay.status!=='paid'){
+        await client.query(`update star_payments set status='paid', telegram_payment_charge_id=$1, paid_at=now() where id=$2`,[sp.telegram_payment_charge_id||'', pay.id]);
+        await client.query(`update users set balance=balance+$1,xp=xp+$2 where id=$3`,[pay.total_amount, Math.max(1,Math.floor(Number(pay.total_amount)/10)), pay.user_id]);
+        await client.query(`insert into ledger(user_id,amount,kind,ref,meta) values($1,$2,'stars_payment',$3,$4)`,[pay.user_id,pay.total_amount,payload,JSON.stringify(sp)]);
+      }
+      await client.query('commit');
+    }catch(e){ await client.query('rollback'); throw e; } finally{ client.release(); }
+    return res.json({ok:true});
+  }
+  if(msg?.chat?.id && msg?.text?.startsWith('/start')) await sendStart(msg.chat.id);
+  res.json({ok:true});
+}catch(e){console.error(e); res.status(500).json({ok:false});} });
+
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
-app.listen(PORT,()=>console.log(`${APP} v9 on ${PORT}`));
+app.listen(PORT,()=>console.log(`${APP} v9.1 on ${PORT}`));
