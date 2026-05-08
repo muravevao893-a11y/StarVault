@@ -1,9 +1,12 @@
 {
-  "name": "starlucky-v11-game-pages",
-  "version": "11.0.0",
+  "name": "starlucky-v12-prod-upgrades",
+  "version": "12.0.0",
   "type": "module",
   "private": true,
   "scripts": { "start": "node server.mjs" },
-  "dependencies": { "express": "^4.19.2", "pg": "^8.12.0" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
   "engines": { "node": ">=20" }
 }
