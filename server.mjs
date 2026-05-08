@@ -45,7 +45,7 @@ app.use(express.static(path.join(__dirname, "public")));
 function jsonError(res, status, code, message) { return res.status(status).json({ ok: false, code, message }); }
 function nowIso() { return new Date().toISOString(); }
 function safeInt(v, fallback = 0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : fallback; }
-function publicUser(u, displayName) { return { telegram_id: String(u.telegram_id), first_name: u.first_name, last_name: u.last_name, username: u.username, photo_url: u.photo_url, balance_stars: u.balance_stars || 0, xp: u.xp || 0, level: u.level || 1, display_name: displayName || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Игрок" }; }
+function publicUser(u, displayName) { return { telegram_id: String(u.telegram_id), first_name: u.first_name, last_name: u.last_name, username: u.username, photo_url: u.photo_url, balance_stars: u.balance_stars || 0, xp: u.xp || 0, level: u.level || 1, display_name: displayName || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Игрок", saved_wallet_address: u.wallet_address || null }; }
 function levelFromXp(xp) { return Math.max(1, Math.floor(Number(xp || 0) / 1000) + 1); }
 function shortName(user) { return [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.username || "Игрок"; }
 function pickWeighted(items) { const total = items.reduce((s, i) => s + Number(i.weight || 0), 0); let r = Math.random() * total; for (const it of items) { r -= Number(it.weight || 0); if (r <= 0) return it; } return items[items.length - 1]; }
@@ -288,6 +288,23 @@ async function initDb() {
     create trigger starlucky_users_compat_sync_trigger
       before insert or update on users
       for each row execute function starlucky_users_compat_sync();
+
+    alter table inventory add column if not exists nft_address text;
+    alter table inventory add column if not exists collection text;
+    alter table inventory add column if not exists owner_wallet text;
+    create unique index if not exists inventory_user_nft_unique_idx on inventory(telegram_id, nft_address) where nft_address is not null;
+
+    create table if not exists wallets (
+      id bigserial primary key,
+      telegram_id bigint not null,
+      address text not null,
+      source text not null default 'tonconnect',
+      is_active boolean not null default true,
+      connected_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      unique(telegram_id, address)
+    );
+    create index if not exists idx_wallets_user_active on wallets(telegram_id, is_active);
   `);
 
 }
@@ -424,11 +441,100 @@ async function getGameHistory(telegramId, game) {
 
 // public
 app.get("/health", (req, res) => res.json({ ok: true, app: PUBLIC_APP_NAME, db: Boolean(pool) }));
-app.get("/api/version", (req, res) => res.json({ ok: true, app: "StarLucky", version: "12.1.0-schema-compat-migration", db: Boolean(pool) }));
+app.get("/api/version", (req, res) => res.json({ ok: true, app: "StarLucky", version: "12.2.0-wallet-nft-sync-real", db: Boolean(pool) }));
+
+function tonHeaders() {
+  const h = { accept: "application/json" };
+  if (TON_API_KEY) h.authorization = `Bearer ${TON_API_KEY}`;
+  return h;
+}
+function firstPreview(previews, type) {
+  return Array.isArray(previews) ? previews.find(p => String(p.type || "").includes(type))?.url : null;
+}
+function nftTitle(n) {
+  return n?.metadata?.name || n?.name || n?.collection?.name || "TON NFT";
+}
+function nftImage(n) {
+  return firstPreview(n?.previews, "image") || n?.metadata?.image || n?.metadata?.image_url || n?.image_url || null;
+}
+function nftAnimation(n) {
+  return firstPreview(n?.previews, "video") || n?.metadata?.animation_url || n?.animation_url || null;
+}
+function nftAddress(n) {
+  return n?.address || n?.item_address || n?.nft_address || n?.contract_address || n?.addr || null;
+}
+function nftPriceLabel(n) {
+  const raw = n?.sale?.price?.value || n?.sale?.full_price || n?.price?.value;
+  if (!raw) return "NFT";
+  const ton = Number(raw) / 1e9;
+  return Number.isFinite(ton) && ton > 0 ? `${ton.toFixed(ton >= 1 ? 2 : 3)} TON` : "NFT";
+}
+async function fetchTonNfts(address) {
+  const base = String(TON_API_BASE || "https://tonapi.io").replace(/\/$/, "");
+  const url = `${base}/v2/accounts/${encodeURIComponent(address)}/nfts?limit=1000&offset=0`;
+  const resp = await fetch(url, { headers: tonHeaders() });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data?.error || data?.message || "TON_API_ERROR");
+  return data.nft_items || data.items || [];
+}
+
 app.get("/api/config", (req, res) => res.json({ ok: true, appName: PUBLIC_APP_NAME, botUsername: PUBLIC_TG_BOT_USERNAME, channelUrl: PUBLIC_CHANNEL_URL, supportUrl: PUBLIC_SUPPORT_URL, baseUrl: APP_BASE_URL, tonReceiver: TON_RECEIVER }));
 app.get("/tonconnect-manifest.json", (req, res) => res.json({ url: APP_BASE_URL || `${req.protocol}://${req.get("host")}`, name: PUBLIC_APP_NAME, iconUrl: `${APP_BASE_URL || `${req.protocol}://${req.get("host")}`}/icon.png` }));
 app.get("/api/me", async (req, res) => { const tg = requireUser(req, res); if (!tg) return; const user = await upsertUser(tg); res.json({ ok: true, user: publicUser(user, shortName(tg)) }); });
-app.post("/api/wallet/connect", async (req, res) => { const tg = requireUser(req, res); if (!tg) return; const user = await upsertUser(tg); const address = String(req.body.address || "").trim(); if (!address) return jsonError(res, 400, "BAD_ADDRESS", "Нет адреса кошелька"); if (pool) await pool.query("update users set wallet_address=$1, updated_at=now() where telegram_id=$2", [address, String(tg.id)]); else user.wallet_address = address; res.json({ ok: true, address }); });
+app.post("/api/wallet/connect", async (req, res) => {
+  const tg = requireUser(req, res); if (!tg) return;
+  const user = await upsertUser(tg);
+  const address = String(req.body.address || "").trim();
+  if (!address || address.length < 10) return jsonError(res, 400, "BAD_ADDRESS", "Нет адреса кошелька");
+  if (pool) {
+    await pool.query("update users set wallet_address=$1, updated_at=now() where telegram_id=$2", [address, String(tg.id)]);
+    await pool.query("insert into wallets(telegram_id,address,source,is_active) values($1,$2,'tonconnect',true) on conflict(telegram_id,address) do update set is_active=true, updated_at=now()", [String(tg.id), address]);
+  } else user.wallet_address = address;
+  res.json({ ok: true, address });
+});
+app.post("/api/wallet/disconnect", async (req, res) => {
+  const tg = requireUser(req, res); if (!tg) return;
+  await upsertUser(tg);
+  if (pool) {
+    await pool.query("update users set wallet_address=null, updated_at=now() where telegram_id=$1", [String(tg.id)]);
+    await pool.query("update wallets set is_active=false, updated_at=now() where telegram_id=$1", [String(tg.id)]);
+  }
+  res.json({ ok: true });
+});
+app.post("/api/ton/sync", async (req, res) => {
+  const tg = requireUser(req, res); if (!tg) return;
+  await upsertUser(tg);
+  if (!pool) return jsonError(res, 501, "DB_REQUIRED", "Нужна PostgreSQL база");
+  if (process.env.NFT_SYNC_ENABLED !== "true") return jsonError(res, 403, "NFT_SYNC_DISABLED", "Синхронизация NFT выключена");
+  const address = String(req.body.address || "").trim();
+  if (!address || address.length < 10) return jsonError(res, 400, "BAD_WALLET", "Подключи TON кошелек через TON Connect");
+  try {
+    await pool.query("update users set wallet_address=$1, updated_at=now() where telegram_id=$2", [address, String(tg.id)]);
+    const nfts = await fetchTonNfts(address);
+    let added = 0;
+    for (const n of nfts.slice(0, 250)) {
+      const addr = nftAddress(n);
+      if (!addr) continue;
+      const title = nftTitle(n);
+      const image_url = nftImage(n);
+      const animation_url = nftAnimation(n);
+      const collection = n?.collection?.name || n?.metadata?.collection || null;
+      const price_label = nftPriceLabel(n);
+      const inserted = await pool.query(`
+        insert into inventory(telegram_id,item_type,title,source,image_url,animation_url,price_label,metadata,nft_address,collection,owner_wallet)
+        values($1,'nft',$2,'ton',$3,$4,$5,$6,$7,$8,$9)
+        on conflict (telegram_id, nft_address) where nft_address is not null do nothing
+        returning id
+      `, [String(tg.id), title, image_url, animation_url, price_label, JSON.stringify(n), addr, collection, address]);
+      if (inserted.rowCount) {
+        added++;
+        await pool.query("insert into live_drops(telegram_id,title,price_label,image_url,animation_url,source) values($1,$2,$3,$4,$5,'ton_nft')", [String(tg.id), title, price_label, image_url, animation_url]);
+      }
+    }
+    res.json({ ok: true, synced: nfts.length, added });
+  } catch (e) { jsonError(res, 502, "TON_SYNC_ERROR", e.message); }
+});
+
 app.get("/api/live-drops", async (req, res) => { if (!pool) return res.json({ ok: true, items: memory.liveDrops.slice(0, 20) }); const items = (await pool.query("select title,price_label,image_url,animation_url,background_css,source,created_at from live_drops order by created_at desc limit 30")).rows; res.json({ ok: true, items }); });
 
 // payments
@@ -485,4 +591,4 @@ app.post("/api/telegram/webhook", async (req, res) => {
 });
 
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-initDb().then(() => app.listen(PORT, () => console.log(`StarLucky v12.1 on ${PORT}`))).catch(e => { console.error(e); process.exit(1); });
+initDb().then(() => app.listen(PORT, () => console.log(`StarLucky v12.2 on ${PORT}`))).catch(e => { console.error(e); process.exit(1); });

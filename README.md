@@ -34,7 +34,7 @@ NFT_SYNC_ENABLED=true
 `/api/version` must return:
 
 ```json
-{"ok":true,"app":"StarLucky","version":"12.0.0-admin-payments-delivery-polished"}
+{"ok":true,"app":"StarLucky","version":"12.2.0-admin-payments-delivery-polished"}
 ```
 
 ## Set webhook
