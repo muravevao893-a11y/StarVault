@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
+import { Address } from '@ton/core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,23 +119,36 @@ async function requireUser(req,res,next){
     const initData = req.header('x-telegram-init-data') || req.body?.initData || req.query?.initData || '';
     let tu = webappUser(initData);
     if(!tu && process.env.NODE_ENV !== 'production') tu = { id:'dev', first_name:'Dev', last_name:'User', username:'dev', photo_url:'' };
-    if(!tu?.id) return res.status(401).json({ok:false,error:'telegram_auth_required'});
-    const tgId = String(tu.id);
-    const r = await q(`insert into users(tg_id,first_name,last_name,username,photo_url,updated_at)
-      values($1,$2,$3,$4,$5,now())
-      on conflict(tg_id) do update set first_name=excluded.first_name,last_name=excluded.last_name,username=excluded.username,photo_url=excluded.photo_url,updated_at=now()
-      returning *`, [tgId, tu.first_name||'', tu.last_name||'', tu.username||'', tu.photo_url||'']);
-    req.user = r.rows[0]; next();
+    if(!tu?.id) return res.status(401).json({ok:false,error:'telegram_auth_required', hint:'Open the app from Telegram Mini App and check TELEGRAM_BOT_TOKEN matches this bot'});
+    const user = await upsertTelegramUser(tu);
+    req.user = user; next();
   }catch(e){ console.error(e); res.status(500).json({ok:false,error:'user_load_failed'}); }
 }
 function admin(req,res,next){ if(!ADMIN_TOKEN || req.header('x-admin-token') !== ADMIN_TOKEN) return res.status(403).json({ok:false,error:'admin_forbidden'}); next(); }
 function levelFromXp(xp){ return Math.max(1, Math.floor(Number(xp||0)/1000)+1); }
+
+async function upsertTelegramUser(tu){
+  if(!tu?.id || !pool) return null;
+  const tgId = String(tu.id);
+  const r = await q(`insert into users(tg_id,first_name,last_name,username,photo_url,updated_at)
+    values($1,$2,$3,$4,$5,now())
+    on conflict(tg_id) do update set
+      first_name=coalesce(nullif(excluded.first_name,''), users.first_name),
+      last_name=coalesce(nullif(excluded.last_name,''), users.last_name),
+      username=coalesce(nullif(excluded.username,''), users.username),
+      photo_url=coalesce(nullif(excluded.photo_url,''), users.photo_url),
+      updated_at=now()
+    returning *`, [tgId, tu.first_name||'', tu.last_name||'', tu.username||'', tu.photo_url||'']);
+  return r.rows[0];
+}
 async function addDrop(client,userId,item){ await client.query(`insert into live_drops(user_id,title,price_label,image_url,animation_url,bg_css,source) values($1,$2,$3,$4,$5,$6,$7)`, [userId,item.title,item.price_label||'',item.image_url||'',item.animation_url||'',item.bg_css||'',item.source||'gift']); }
 
 app.get('/health', async (req,res)=>{ let db=false; try{ if(pool){await q('select 1'); db=true;} }catch{} res.json({ok:true, app:APP, db}); });
-app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'10.0.0-production-foundation-polished'}));
+app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'10.2.0-wallet-stars-fixed'}));
 app.get('/api/config',(req,res)=>res.json({appName:APP, baseUrl:BASE, botUsername:BOT, channelUrl:CHANNEL, supportUrl:SUPPORT, tonReceiverWallet:process.env.PUBLIC_TON_RECEIVER_WALLET||'', tonManifestUrl:`${BASE || ''}/tonconnect-manifest.json`}));
+app.post('/api/auth/check', async (req,res)=>{ const u = webappUser(req.body?.initData||''); res.json({ok:!!u, hasInitData:!!req.body?.initData, user:u?{id:u.id, first_name:u.first_name||'', last_name:u.last_name||'', username:u.username||'', photo_url:!!u.photo_url}:null}); });
 app.get('/tonconnect-manifest.json',(req,res)=>res.json({url:BASE || `https://${req.get('host')}`, name:APP, iconUrl:`${BASE || `https://${req.get('host')}`}/icon.png`}));
+app.post('/api/ton/normalize', requireUser, async (req,res)=>{ const address = normalizeTonAddress(req.body?.address); if(!address) return res.status(400).json({ok:false,error:'bad_ton_address'}); res.json({ok:true,address}); });
 
 
 const STAR_PACKS = [30,100,200,500,1000,2500,5000];
@@ -159,6 +173,15 @@ function bonusForStars(amount, kind='stars'){
   }
   return 0;
 }
+
+function normalizeTonAddress(address){
+  const raw = String(address||'').trim();
+  if(!raw) return '';
+  try { return Address.parse(raw).toString({ urlSafe:true, bounceable:false }); }
+  catch { return ''; }
+}
+function isTonAddress(address){ return !!normalizeTonAddress(address); }
+
 function tonEstimate(amount){ return (amount / Number(process.env.STARS_PER_TON || 173.5)).toFixed(2); }
 app.get('/api/pay/packs', requireUser, async (req,res)=>{
   res.json({ok:true, packs: STAR_PACKS.map(amount=>({amount, ton:tonEstimate(amount), tonBonus:bonusForStars(amount,'ton'), sendBonus:bonusForStars(amount,'send')}))});
@@ -179,8 +202,9 @@ app.post('/api/pay/stars/create', requireUser, async (req,res)=>{
 });
 app.post('/api/pay/ton/create', requireUser, async (req,res)=>{
   const amount = Number(req.body.amount);
-  const wallet = String(req.body.wallet||'').trim();
+  const wallet = normalizeTonAddress(req.body.wallet);
   if(!STAR_PACKS.includes(amount)) return res.status(400).json({ok:false,error:'bad_amount'});
+  if(!wallet) return res.status(400).json({ok:false,error:'bad_ton_address'});
   const receiver = process.env.PUBLIC_TON_RECEIVER_WALLET || '';
   if(!receiver) return res.status(500).json({ok:false,error:'receiver_wallet_missing'});
   const bonus = bonusForStars(amount,'ton');
@@ -208,15 +232,15 @@ app.get('/api/inventory', requireUser, async (req,res)=>{
   res.json({ok:true,items:r.rows});
 });
 app.post('/api/wallet/connect', requireUser, async (req,res)=>{
-  const address = String(req.body.address||'').trim();
-  if(!/^(EQ|UQ)[A-Za-z0-9_-]{40,}$/.test(address)) return res.status(400).json({ok:false,error:'bad_ton_address'});
+  const address = normalizeTonAddress(req.body.address);
+  if(!address) return res.status(400).json({ok:false,error:'bad_ton_address'});
   await q('insert into wallets(user_id,address) values($1,$2) on conflict do nothing',[req.user.id,address]);
   res.json({ok:true,address});
 });
 app.post('/api/ton/sync', requireUser, async (req,res)=>{
   if(!NFT_SYNC_ENABLED) return res.status(400).json({ok:false,error:'nft_sync_disabled'});
-  const address = String(req.body.address||'').trim();
-  if(!/^(EQ|UQ)[A-Za-z0-9_-]{40,}$/.test(address)) return res.status(400).json({ok:false,error:'bad_ton_address'});
+  const address = normalizeTonAddress(req.body.address);
+  if(!address) return res.status(400).json({ok:false,error:'bad_ton_address'});
   const url = `${TON_API_BASE.replace(/\/$/,'')}/v2/accounts/${encodeURIComponent(address)}/nfts?limit=1000&offset=0`;
   const headers = TON_API_KEY ? { Authorization: `Bearer ${TON_API_KEY}` } : {};
   const resp = await fetch(url,{headers});
