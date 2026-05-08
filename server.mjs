@@ -214,6 +214,82 @@ async function initDb() {
     create index if not exists idx_orders_status_time on delivery_orders(status, created_at desc);
     create index if not exists idx_live_drops_time on live_drops(created_at desc);
   `);
+
+  // Compatibility migration for older StarLucky builds.
+  // Earlier builds used users.tg_id/balance; newer builds use users.telegram_id/balance_stars.
+  await pool.query(`
+    alter table users add column if not exists tg_id text;
+    alter table users add column if not exists telegram_id bigint;
+    alter table users add column if not exists balance integer not null default 0;
+    alter table users add column if not exists balance_stars integer not null default 0;
+    alter table users add column if not exists xp integer not null default 0;
+    alter table users add column if not exists level integer not null default 1;
+    alter table users add column if not exists first_name text;
+    alter table users add column if not exists last_name text;
+    alter table users add column if not exists username text;
+    alter table users add column if not exists photo_url text;
+    alter table users add column if not exists wallet_address text;
+    alter table users add column if not exists is_blocked boolean not null default false;
+    alter table users add column if not exists created_at timestamptz not null default now();
+    alter table users add column if not exists updated_at timestamptz not null default now();
+
+    alter table users alter column tg_id drop not null;
+    alter table users alter column telegram_id drop not null;
+
+    update users
+      set tg_id = coalesce(tg_id, telegram_id::text)
+      where tg_id is null and telegram_id is not null;
+
+    update users
+      set telegram_id = nullif(regexp_replace(tg_id, '[^0-9]', '', 'g'), '')::bigint
+      where telegram_id is null and tg_id is not null and nullif(regexp_replace(tg_id, '[^0-9]', '', 'g'), '') is not null;
+
+    update users
+      set balance_stars = greatest(coalesce(balance_stars, 0), coalesce(balance, 0)),
+          balance = greatest(coalesce(balance_stars, 0), coalesce(balance, 0))
+      where coalesce(balance_stars, 0) <> coalesce(balance, 0);
+
+    create unique index if not exists users_telegram_id_unique_idx on users(telegram_id) where telegram_id is not null;
+    create unique index if not exists users_tg_id_unique_idx on users(tg_id) where tg_id is not null;
+
+    create or replace function starlucky_users_compat_sync()
+    returns trigger as $$
+    begin
+      if new.telegram_id is null and new.tg_id is not null then
+        begin
+          new.telegram_id := nullif(regexp_replace(new.tg_id, '[^0-9]', '', 'g'), '')::bigint;
+        exception when others then
+          new.telegram_id := null;
+        end;
+      end if;
+
+      if new.tg_id is null and new.telegram_id is not null then
+        new.tg_id := new.telegram_id::text;
+      end if;
+
+      if new.balance_stars is null and new.balance is not null then
+        new.balance_stars := new.balance;
+      end if;
+
+      if new.balance is null and new.balance_stars is not null then
+        new.balance := new.balance_stars;
+      end if;
+
+      if new.balance_stars is null then new.balance_stars := 0; end if;
+      if new.balance is null then new.balance := new.balance_stars; end if;
+      if new.xp is null then new.xp := 0; end if;
+      if new.level is null then new.level := greatest(1, floor(coalesce(new.xp,0) / 1000) + 1); end if;
+      new.updated_at := now();
+      return new;
+    end;
+    $$ language plpgsql;
+
+    drop trigger if exists starlucky_users_compat_sync_trigger on users;
+    create trigger starlucky_users_compat_sync_trigger
+      before insert or update on users
+      for each row execute function starlucky_users_compat_sync();
+  `);
+
 }
 
 async function audit(action, details = {}) { if (!pool) return; await pool.query("insert into admin_audit(action, details) values($1,$2)", [action, details]); }
@@ -348,7 +424,7 @@ async function getGameHistory(telegramId, game) {
 
 // public
 app.get("/health", (req, res) => res.json({ ok: true, app: PUBLIC_APP_NAME, db: Boolean(pool) }));
-app.get("/api/version", (req, res) => res.json({ ok: true, app: "StarLucky", version: "12.0.0-admin-payments-delivery-polished", db: Boolean(pool) }));
+app.get("/api/version", (req, res) => res.json({ ok: true, app: "StarLucky", version: "12.1.0-schema-compat-migration", db: Boolean(pool) }));
 app.get("/api/config", (req, res) => res.json({ ok: true, appName: PUBLIC_APP_NAME, botUsername: PUBLIC_TG_BOT_USERNAME, channelUrl: PUBLIC_CHANNEL_URL, supportUrl: PUBLIC_SUPPORT_URL, baseUrl: APP_BASE_URL, tonReceiver: TON_RECEIVER }));
 app.get("/tonconnect-manifest.json", (req, res) => res.json({ url: APP_BASE_URL || `${req.protocol}://${req.get("host")}`, name: PUBLIC_APP_NAME, iconUrl: `${APP_BASE_URL || `${req.protocol}://${req.get("host")}`}/icon.png` }));
 app.get("/api/me", async (req, res) => { const tg = requireUser(req, res); if (!tg) return; const user = await upsertUser(tg); res.json({ ok: true, user: publicUser(user, shortName(tg)) }); });
@@ -409,4 +485,4 @@ app.post("/api/telegram/webhook", async (req, res) => {
 });
 
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-initDb().then(() => app.listen(PORT, () => console.log(`StarLucky v12 on ${PORT}`))).catch(e => { console.error(e); process.exit(1); });
+initDb().then(() => app.listen(PORT, () => console.log(`StarLucky v12.1 on ${PORT}`))).catch(e => { console.error(e); process.exit(1); });
