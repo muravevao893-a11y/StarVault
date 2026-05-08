@@ -20,7 +20,13 @@ const TON_API_BASE = process.env.TON_API_BASE || 'https://tonapi.io';
 const TON_API_KEY = process.env.TON_API_KEY || '';
 const NFT_SYNC_ENABLED = process.env.NFT_SYNC_ENABLED !== 'false';
 
-const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes('railway') ? { rejectUnauthorized: false } : undefined }) : null;
+const pool = process.env.DATABASE_URL ? new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.PG_POOL_MAX || 20),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  ssl: process.env.DATABASE_URL.includes('railway') ? { rejectUnauthorized: false } : undefined
+}) : null;
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '4mb' }));
@@ -75,7 +81,20 @@ async function initDb(){
   );
   create table if not exists ton_payments(
     id bigserial primary key, user_id bigint references users(id), stars_amount bigint not null, bonus_amount bigint not null default 0, ton_amount text not null, wallet_address text default '', receiver_address text default '', memo text unique not null, status text not null default 'created', created_at timestamptz default now(), paid_at timestamptz
-  );`);
+  );
+  create table if not exists audit_log(
+    id bigserial primary key, actor text default '', action text not null, target text default '', meta jsonb default '{}'::jsonb, created_at timestamptz default now()
+  );
+  create index if not exists idx_ledger_user_created on ledger(user_id, created_at desc);
+  create index if not exists idx_inventory_user_created on inventory(user_id, created_at desc);
+  create index if not exists idx_live_drops_created on live_drops(created_at desc);
+  create index if not exists idx_star_payments_user_created on star_payments(user_id, created_at desc);
+  create index if not exists idx_ton_payments_user_created on ton_payments(user_id, created_at desc);
+  create index if not exists idx_task_submissions_user_task on task_submissions(user_id, task_id);
+  create index if not exists idx_users_updated on users(updated_at desc);
+  delete from task_submissions a using task_submissions b where a.id > b.id and a.user_id=b.user_id and a.task_id=b.task_id;
+  create unique index if not exists uniq_task_submission_user_task on task_submissions(user_id, task_id);
+  `);
 }
 initDb().catch(e=>console.error('DB init failed', e));
 
@@ -113,7 +132,7 @@ function levelFromXp(xp){ return Math.max(1, Math.floor(Number(xp||0)/1000)+1); 
 async function addDrop(client,userId,item){ await client.query(`insert into live_drops(user_id,title,price_label,image_url,animation_url,bg_css,source) values($1,$2,$3,$4,$5,$6,$7)`, [userId,item.title,item.price_label||'',item.image_url||'',item.animation_url||'',item.bg_css||'',item.source||'gift']); }
 
 app.get('/health', async (req,res)=>{ let db=false; try{ if(pool){await q('select 1'); db=true;} }catch{} res.json({ok:true, app:APP, db}); });
-app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'9.1.0-production-deposit-ui'}));
+app.get('/api/version',(req,res)=>res.json({ok:true, app:'StarLucky', version:'10.0.0-production-foundation-polished'}));
 app.get('/api/config',(req,res)=>res.json({appName:APP, baseUrl:BASE, botUsername:BOT, channelUrl:CHANNEL, supportUrl:SUPPORT, tonReceiverWallet:process.env.PUBLIC_TON_RECEIVER_WALLET||'', tonManifestUrl:`${BASE || ''}/tonconnect-manifest.json`}));
 app.get('/tonconnect-manifest.json',(req,res)=>res.json({url:BASE || `https://${req.get('host')}`, name:APP, iconUrl:`${BASE || `https://${req.get('host')}`}/icon.png`}));
 
@@ -252,14 +271,21 @@ app.post('/api/task/submit', requireUser, async (req,res)=>{
   const taskId=Number(req.body.taskId);
   const task=(await q('select * from tasks where id=$1 and is_active=true',[taskId])).rows[0];
   if(!task) return res.status(404).json({ok:false,error:'task_not_found'});
-  await q(`insert into task_submissions(user_id,task_id,status) values($1,$2,'pending') on conflict do nothing`,[req.user.id,taskId]).catch(()=>{});
+  await q(`insert into task_submissions(user_id,task_id,status) values($1,$2,'pending') on conflict (user_id,task_id) do nothing`,[req.user.id,taskId]).catch(()=>{});
   res.json({ok:true,status:'pending'});
 });
 
 // Admin API
 app.get('/api/admin/all', admin, async(req,res)=>{
-  const [users,gifts,cases,tasks,drops]=await Promise.all([q('select id,tg_id,first_name,last_name,username,balance,xp from users order by id desc limit 200'),q('select * from gifts order by id desc'),q('select * from cases order by id desc'),q('select * from tasks order by id desc'),q('select * from live_drops order by id desc limit 100')]);
-  res.json({ok:true,users:users.rows,gifts:gifts.rows,cases:cases.rows,tasks:tasks.rows,drops:drops.rows});
+  const [users,gifts,cases,tasks,drops,stats]=await Promise.all([
+    q('select id,tg_id,first_name,last_name,username,balance,xp,updated_at from users order by id desc limit 500'),
+    q('select * from gifts order by id desc'),
+    q('select * from cases order by id desc'),
+    q('select * from tasks order by id desc'),
+    q('select * from live_drops order by id desc limit 100'),
+    q(`select (select count(*) from users)::int users, (select count(*) from ledger)::int ledger, (select coalesce(sum(balance),0) from users)::bigint total_balance, (select count(*) from inventory)::int inventory`)
+  ]);
+  res.json({ok:true,users:users.rows,gifts:gifts.rows,cases:cases.rows,tasks:tasks.rows,drops:drops.rows,stats:stats.rows[0]});
 });
 app.post('/api/admin/gift', admin, async(req,res)=>{const b=req.body; const r=await q('insert into gifts(title,price,stock,image_url,animation_url,bg_css,description,is_active) values($1,$2,$3,$4,$5,$6,$7,true) returning *',[b.title,b.price||0,b.stock||0,b.image_url||'',b.animation_url||'',b.bg_css||'',b.description||'']); res.json({ok:true,gift:r.rows[0]});});
 app.post('/api/admin/case', admin, async(req,res)=>{const b=req.body; const r=await q('insert into cases(title,price,stock,image_url,bg_css,description,is_active) values($1,$2,$3,$4,$5,$6,true) returning *',[b.title,b.price||0,b.stock||0,b.image_url||'',b.bg_css||'',b.description||'']); res.json({ok:true,case:r.rows[0]});});
@@ -299,4 +325,4 @@ app.post('/api/telegram/webhook', async(req,res)=>{ try{
 }catch(e){console.error(e); res.status(500).json({ok:false});} });
 
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
-app.listen(PORT,()=>console.log(`${APP} v9.1 on ${PORT}`));
+app.listen(PORT,()=>console.log(`${APP} v10 on ${PORT}`));

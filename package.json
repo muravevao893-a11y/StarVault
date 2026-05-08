@@ -1,6 +1,6 @@
 {
-  "name": "starlucky-v9-production-ui",
-  "version": "9.1.0",
+  "name": "starlucky-v10-production-polished",
+  "version": "10.0.0",
   "type": "module",
   "private": true,
   "scripts": {"start": "node server.mjs"},
